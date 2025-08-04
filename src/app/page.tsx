@@ -50,9 +50,9 @@ export default function Dashboard() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">5</div>
+            <div className="text-2xl font-bold">2</div>
             <p className="text-xs text-muted-foreground">
-              +2 since last week
+              +1 since last month
             </p>
           </CardContent>
         </Card>
@@ -64,9 +64,9 @@ export default function Dashboard() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
+            <div className="text-2xl font-bold">3</div>
             <p className="text-xs text-muted-foreground">
-              in the next 7 days
+              +1 since last week
             </p>
           </CardContent>
         </Card>
@@ -76,9 +76,9 @@ export default function Dashboard() {
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">150</div>
+            <div className="text-2xl font-bold">25</div>
             <p className="text-xs text-muted-foreground">
-              +35 this week
+              +10 this week
             </p>
           </CardContent>
         </Card>
@@ -88,7 +88,7 @@ export default function Dashboard() {
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">8%</div>
+            <div className="text-2xl font-bold">12%</div>
             <p className="text-xs text-muted-foreground">
               Meeting booked / contacted
             </p>
