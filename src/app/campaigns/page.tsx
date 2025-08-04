@@ -46,47 +46,15 @@ export default function CampaignsPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Set initial state from default data first to avoid hydration issues
-    setCampaigns([]);
-    setSolutions(initialSolutions);
-    setProfiles(initialProfiles);
-
-    // Then, try to load from localStorage on the client
+    // Load state from localStorage on the client
     const savedCampaigns = localStorage.getItem('campaigns');
-    if (savedCampaigns) {
-        try {
-            const parsed = JSON.parse(savedCampaigns);
-            if (Array.isArray(parsed)) {
-                setCampaigns(parsed);
-            }
-        } catch {
-            // Do nothing, use initial
-        }
-    }
+    setCampaigns(savedCampaigns ? JSON.parse(savedCampaigns) : []);
 
     const savedSolutions = localStorage.getItem('solutions');
-    if (savedSolutions) {
-        try {
-            const parsed = JSON.parse(savedSolutions);
-            if (Array.isArray(parsed)) {
-                setSolutions(parsed);
-            }
-        } catch {
-             // Do nothing, use initial
-        }
-    }
+    setSolutions(savedSolutions ? JSON.parse(savedSolutions) : initialSolutions);
 
     const savedProfiles = localStorage.getItem('profiles');
-     if (savedProfiles) {
-        try {
-            const parsed = JSON.parse(savedProfiles);
-             if (Array.isArray(parsed)) {
-                setProfiles(parsed);
-            }
-        } catch {
-            // Do nothing, use initial
-        }
-    }
+    setProfiles(savedProfiles ? JSON.parse(savedProfiles) : initialProfiles);
   }, []);
 
   useEffect(() => {

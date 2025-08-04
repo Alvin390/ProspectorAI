@@ -20,6 +20,7 @@ import type { ConversationalCallInput, ConversationalCallOutput } from '@/ai/flo
 import {
     runOrchestrator,
 } from '@/ai/flows/outreach-orchestrator';
+import type { OutreachOrchestratorOutput } from '@/ai/flows/outreach-orchestrator.schema';
 import {
     handleEmailFollowUp
 } from '@/ai/flows/email-follow-up';
@@ -190,6 +191,7 @@ export async function handleConversationalCall(
 
 interface OrchestratorState {
     message: string;
+    data: OutreachOrchestratorOutput | null;
     error: string | null;
 }
 
@@ -204,12 +206,12 @@ const mockLeads = [
 export async function handleRunOrchestrator(campaign: Campaign, solutions: Solution[], profiles: Profile[]): Promise<OrchestratorState> {
     const solution = solutions.find(s => s.id === campaign.solutionId);
     if (!solution) {
-        return { message: 'error', error: 'Solution definition not found for this campaign.' };
+        return { message: 'error', data: null, error: 'Solution definition not found for this campaign.' };
     }
 
     const profile = profiles.find(p => p.id === campaign.leadProfileId);
     if (!profile || !profile.profileData) {
-        return { message: 'error', error: 'Lead profile data not found for this campaign.' };
+        return { message: 'error', data: null, error: 'Lead profile data not found for this campaign.' };
     }
 
     const leadProfileString = `Attributes: ${profile.profileData.attributes}\nOnline Presence: ${profile.profileData.onlinePresence}`;
@@ -224,9 +226,9 @@ export async function handleRunOrchestrator(campaign: Campaign, solutions: Solut
         
         console.log('Orchestrator Result:', JSON.stringify(result, null, 2));
 
-        return { message: 'success', error: null };
+        return { message: 'success', data: result, error: null };
     } catch (e: any) {
-        return { message: 'error', error: e.message || 'An unknown error occurred while running the orchestrator.' };
+        return { message: 'error', data: null, error: e.message || 'An unknown error occurred while running the orchestrator.' };
     }
 }
 

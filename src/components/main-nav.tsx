@@ -11,6 +11,7 @@ import {
   Calendar,
   FileText,
   Package,
+  Bot,
 } from 'lucide-react';
 
 import {
@@ -24,6 +25,7 @@ const navItems = [
   { href: '/solutions', label: 'Solutions', icon: Package },
   { href: '/leads', label: 'Lead Profiling', icon: Users },
   { href: '/campaigns', label: 'Campaigns', icon: Mail },
+  { href: '/orchestration', label: 'Orchestration', icon: Bot },
   { href: '/calling', label: 'Calling', icon: Phone },
   { href: '/email', label: 'Email', icon: Mail },
   { href: '/calendar', label: 'Calendar', icon: Calendar },
