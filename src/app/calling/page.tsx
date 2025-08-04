@@ -20,10 +20,15 @@ import {
 import { Badge } from '@/components/ui/badge';
 import type { Campaign } from '@/app/campaigns/page';
 
-// Mock function to fetch campaigns. In a real app, this would be an API call.
+// Mock function to fetch campaigns. In a real app, this would be an API call or come from shared state.
 const getCampaigns = (): Campaign[] => {
-  // This is a placeholder. In a real app, you'd fetch this from a database or a shared state management solution.
-  // For now, we'll use a simplified version of the initial campaigns.
+  // We'll use a simplified version of the initial campaigns for now.
+  // In a real application, this would likely come from a global state manager (like Context or Zustand)
+  // or be fetched from a database.
+  const campaignsFromStorage = typeof window !== 'undefined' ? localStorage.getItem('campaigns') : null;
+  if (campaignsFromStorage) {
+    return JSON.parse(campaignsFromStorage);
+  }
   return [
      {
         id: "1",
@@ -44,34 +49,26 @@ const getCampaigns = (): Campaign[] => {
   ];
 }
 
-
 const generateMockCallLog = (campaigns: Campaign[]) => {
     const activeCampaigns = campaigns.filter(c => c.status === 'Active');
     const log: any[] = [];
+    const leadNames = ["Alex Rivera @ Innovate Inc.", "Samantha Bee @ DataCorp", "Michael Chen @ QuantumLeap"];
+    const rejectionReasons = ["Not interested.", "Already have a solution.", "No budget right now."];
 
     activeCampaigns.forEach(campaign => {
         // Add a few mock calls for each active campaign
-        log.push(
-            {
-                lead: `John Doe @ Acme Inc. (${campaign.solutionName})`,
-                status: 'Meeting Scheduled',
-                duration: '03:45',
-                reason: '-',
-            },
-            {
-                lead: `Jane Smith @ Beta Corp. (${campaign.solutionName})`,
-                status: 'Rejected',
-                duration: '01:22',
-                reason: 'Not interested in new tools.',
-            },
-            {
-                lead: `Sam Wilson @ Gamma LLC (${campaign.solutionName})`,
-                status: 'In Progress',
-                duration: '02:10',
-                reason: '-',
-            }
-        )
+        for(let i=0; i < 3; i++) {
+             const statusOptions = ['Meeting Scheduled', 'Rejected', 'In Progress', 'Voicemail Left'];
+             const randomStatus = statusOptions[Math.floor(Math.random() * statusOptions.length)];
+             log.push({
+                lead: `${leadNames[i]} (${campaign.solutionName})`,
+                status: randomStatus,
+                duration: `0${Math.floor(Math.random() * 5)}:${String(Math.floor(Math.random()*60)).padStart(2, '0')}`,
+                reason: randomStatus === 'Rejected' ? rejectionReasons[Math.floor(Math.random() * rejectionReasons.length)] : '-',
+            });
+        }
     });
+
      if (log.length === 0) {
         log.push({
             lead: 'No active campaigns',
@@ -90,8 +87,20 @@ export default function CallingPage() {
   const [callLog, setCallLog] = useState<any[]>([]);
 
   useEffect(() => {
+    // This effect runs on the client and will fetch the latest campaigns
     const campaigns = getCampaigns();
     setCallLog(generateMockCallLog(campaigns));
+
+    // Optional: Listen for storage changes to update in near real-time
+    const handleStorageChange = () => {
+        const updatedCampaigns = getCampaigns();
+        setCallLog(generateMockCallLog(updatedCampaigns));
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+        window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
 

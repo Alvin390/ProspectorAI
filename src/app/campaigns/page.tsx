@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -52,9 +52,23 @@ const initialCampaigns: Campaign[] = [
 ]
 
 export default function CampaignsPage() {
-  const [campaigns, setCampaigns] = useState<Campaign[]>(initialCampaigns);
+  const [campaigns, setCampaigns] = useState<Campaign[]>(() => {
+    if (typeof window !== 'undefined') {
+        const savedCampaigns = localStorage.getItem('campaigns');
+        if (savedCampaigns) {
+            return JSON.parse(savedCampaigns);
+        }
+    }
+    return initialCampaigns;
+  });
   const [activeTab, setActiveTab] = useState('create');
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+        localStorage.setItem('campaigns', JSON.stringify(campaigns));
+    }
+  }, [campaigns]);
 
   const handleCampaignSubmit = (
     campaignData: Omit<Campaign, 'id' | 'status'>
