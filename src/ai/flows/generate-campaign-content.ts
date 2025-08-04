@@ -39,9 +39,9 @@ You will be given a description of a software solution and a detailed profile of
     *   **Call-to-Action (CTA):** End with a low-friction question that invites a follow-up for more information, naturally leading toward a meeting. e.g., "Is exploring a new way to handle [task] a priority right now?"
 3.  **Call Script - The "Direct and Respectful" Opener:**
     *   **Goal:** To disarm the lead, be respectful of their time, and earn the right to a brief conversation.
-    *   **Opening:** Start with a calm, honest tone. "Hi [Lead Name], this is [Your Name]. I'll be upfront, this is a cold call, so feel free to hang up if this isn't a good time."
-    *   **The Hook & Pitch:** Immediately connect to your research with a specific observation. Follow this immediately with a one-sentence value proposition that explains what your solution does and how it helps companies like theirs. "But the reason I'm calling is I saw [Their Company's recent news] and it sparked a thought. We provide [brief, one-sentence solution pitch]."
-    *   **Permission & CTA:** "I don't know if this is a priority for you, but would it be a bad idea to chat for a few minutes about it?" This gives them control but presents a clear path to a meeting.
+    *   **Opening:** Start with a calm, honest tone. "Hi [Lead Name], this is [Your Name]. I know I'm probably catching you out of the blue, but I was hoping you could spare me 30 seconds." This is direct, polite, and sets a clear, short timeframe.
+    *   **The Hook & Pitch:** Immediately connect to your research with a specific observation. Follow this immediately with a one-sentence value proposition that explains what your solution does and how it helps companies like theirs. "The reason for my call is I saw [Their Company's recent news] and it sparked a thought. We provide [brief, one-sentence solution pitch]."
+    *   **Permission & CTA:** "I don't know if this is a priority for you, but would it be a bad idea to chat for another minute about it?" This gives them control but presents a clear path to a meeting.
 
 **Context:**
 ---
