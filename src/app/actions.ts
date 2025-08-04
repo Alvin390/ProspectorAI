@@ -8,6 +8,10 @@ import {
   generateCampaignContent,
   type GenerateCampaignContentOutput,
 } from '@/ai/flows/generate-campaign-content';
+import { 
+  textToSpeech,
+  type TextToSpeechOutput,
+} from '@/ai/flows/text-to-speech';
 import { z } from 'zod';
 import { initialSolutions } from './solutions/data';
 
@@ -83,4 +87,34 @@ export async function handleGenerateCampaignContent(
   } catch (e: any) {
     return { message: 'error', data: null, error: e.message || 'An unknown error occurred.' };
   }
+}
+
+interface TextToSpeechState {
+    message: string;
+    data: TextToSpeechOutput | null;
+    error: string | null;
+}
+
+export async function handleTextToSpeech(
+    prevState: TextToSpeechState,
+    formData: FormData
+): Promise<TextToSpeechState> {
+    const schema = z.string().min(1, 'Script is empty');
+    const script = formData.get('script') as string;
+
+    const validated = schema.safeParse(script);
+    if (!validated.success) {
+        return {
+            message: 'error',
+            data: null,
+            error: validated.error.errors.map((e) => e.message).join(', '),
+        };
+    }
+
+    try {
+        const result = await textToSpeech(validated.data);
+        return { message: 'success', data: result, error: null };
+    } catch (e: any) {
+        return { message: 'error', data: null, error: e.message || 'An unknown error occurred.' };
+    }
 }
