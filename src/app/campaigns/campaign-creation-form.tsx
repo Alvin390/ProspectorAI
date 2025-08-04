@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
+import { initialSolutions } from '@/app/solutions/page';
 
 const initialState = {
   message: '',
@@ -55,40 +56,43 @@ export function CampaignCreationForm() {
   return (
     <div className="space-y-6">
       <form action={formAction} className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="value-proposition">Your Value Proposition</Label>
-          <Textarea
-            id="value-proposition"
-            name="valueProposition"
-            placeholder="e.g., We help companies increase their sales by 20% in the first quarter through our automated outreach platform..."
-            rows={3}
-            required
-          />
-        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="lead-profile">Lead Profile</Label>
-            <Select name="leadProfile" required>
-              <SelectTrigger id="lead-profile">
-                <SelectValue placeholder="Select a lead profile" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="profile-1">
-                  Tech startups in Silicon Valley
-                </SelectItem>
-                <SelectItem value="profile-2">
-                  E-commerce businesses in Europe
-                </SelectItem>
-                <SelectItem value="profile-3">
-                  Financial services companies in New York
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-center space-x-2 pt-6">
+            <div className="space-y-2">
+                <Label htmlFor="solution">Solution</Label>
+                <Select name="solution" required>
+                    <SelectTrigger id="solution">
+                        <SelectValue placeholder="Select a solution" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {initialSolutions.map(solution => (
+                            <SelectItem key={solution.name} value={solution.name}>{solution.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="lead-profile">Lead Profile</Label>
+                <Select name="leadProfile" required>
+                <SelectTrigger id="lead-profile">
+                    <SelectValue placeholder="Select a lead profile" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="profile-1">
+                    Tech startups in Silicon Valley
+                    </SelectItem>
+                    <SelectItem value="profile-2">
+                    E-commerce businesses in Europe
+                    </SelectItem>
+                    <SelectItem value="profile-3">
+                    Financial services companies in New York
+                    </SelectItem>
+                </SelectContent>
+                </Select>
+            </div>
+        </div>
+        <div className="flex items-center space-x-2 pt-2">
             <Switch id="continuous-campaign" name="continuous" />
             <Label htmlFor="continuous-campaign">Continuous Campaign</Label>
-          </div>
         </div>
         <SubmitButton />
       </form>

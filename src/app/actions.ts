@@ -9,6 +9,7 @@ import {
   type GenerateCampaignContentOutput,
 } from '@/ai/flows/generate-campaign-content';
 import { z } from 'zod';
+import { initialSolutions } from './solutions/page';
 
 interface LeadProfileFormState {
   message: string;
@@ -51,12 +52,12 @@ export async function handleGenerateCampaignContent(
   formData: FormData
 ): Promise<CampaignContentFormState> {
   const schema = z.object({
-    valueProposition: z.string().min(10, 'Value proposition is too short'),
+    solution: z.string().min(1, 'Please select a solution'),
     leadProfile: z.string().min(1, 'Please select a lead profile'),
   });
 
   const validated = schema.safeParse({
-    valueProposition: formData.get('valueProposition'),
+    solution: formData.get('solution'),
     leadProfile: formData.get('leadProfile'),
   });
 
@@ -69,8 +70,13 @@ export async function handleGenerateCampaignContent(
   }
   
   try {
+    const solution = initialSolutions.find(s => s.name === validated.data.solution);
+    if (!solution) {
+      return { message: 'error', data: null, error: 'Selected solution not found.' };
+    }
+
     const result = await generateCampaignContent({
-        valueProposition: validated.data.valueProposition,
+        solutionDescription: solution.description,
         leadProfile: validated.data.leadProfile
     });
     return { message: 'success', data: result, error: null };

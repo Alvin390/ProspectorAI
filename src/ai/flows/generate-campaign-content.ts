@@ -9,9 +9,9 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const GenerateCampaignContentInputSchema = z.object({
-  valueProposition: z
+  solutionDescription: z
     .string()
-    .describe('Your company or product value proposition.'),
+    .describe('A detailed description of the software solution or product being offered.'),
   leadProfile: z.string().describe('The generated lead profile.'),
 });
 export type GenerateCampaignContentInput = z.infer<
@@ -38,20 +38,12 @@ const prompt = ai.definePrompt({
   output: {schema: GenerateCampaignContentOutputSchema},
   prompt: `You are an AI assistant specializing in generating personalized outreach campaign content.
 
-  Based on the provided value proposition and lead profile, create an engaging email script and a concise call script.
+  Based on the provided software solution description and lead profile, create an engaging email script and a concise call script.
 
-  Value Proposition: {{{valueProposition}}}
+  Solution Description: {{{solutionDescription}}}
   Lead Profile: {{{leadProfile}}}
 
-  Email Script:
-  ---
-  (Create a personalized email script here)
-  ---
-
-  Call Script:
-  ---
-  (Create a concise call script here)
-  ---
+  Generate the email and call scripts based on this information.
   `,
 });
 
