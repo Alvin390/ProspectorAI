@@ -1,4 +1,5 @@
 
+
 import {
   Card,
   CardContent,
@@ -16,7 +17,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { LeadProfilingForm } from './lead-profiling-form';
-import { solutions } from '@/app/solutions/page';
+import { initialSolutions } from '@/app/solutions/page';
 
 const pastProfiles = [
   {
@@ -51,7 +52,7 @@ export default function LeadProfilingPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <LeadProfilingForm solutions={solutions} />
+          <LeadProfilingForm solutions={initialSolutions} />
         </CardContent>
       </Card>
       <Card>

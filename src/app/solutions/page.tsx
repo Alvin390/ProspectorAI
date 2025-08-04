@@ -1,4 +1,7 @@
 
+'use client';
+
+import { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -16,58 +19,127 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+  SheetClose,
+} from '@/components/ui/sheet';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 export interface Solution {
-    name: string;
-    description: string;
+  name: string;
+  description: string;
 }
 
-export const solutions: Solution[] = [
-    {
-        name: "ProspectorAI",
-        description: "AI-powered lead builder and discovery tool to define target personas, optimizing for fit and conversion.",
-    },
-    {
-        name: "CampaignGen",
-        description: "Generates personalized, multi-channel (email & AI voice call) outreach campaigns based on your value proposition.",
-    }
-]
+export const initialSolutions: Solution[] = [
+  {
+    name: 'ProspectorAI',
+    description:
+      'AI-powered lead builder and discovery tool to define target personas, optimizing for fit and conversion.',
+  },
+  {
+    name: 'CampaignGen',
+    description:
+      'Generates personalized, multi-channel (email & AI voice call) outreach campaigns based on your value proposition.',
+  },
+];
 
 export default function SolutionsPage() {
+  const [solutions, setSolutions] = useState<Solution[]>(initialSolutions);
+  const [open, setOpen] = useState(false);
+  const [newSolution, setNewSolution] = useState<Solution>({ name: '', description: '' });
+
+  const handleAddSolution = () => {
+    if (newSolution.name && newSolution.description) {
+      setSolutions([...solutions, newSolution]);
+      setNewSolution({ name: '', description: '' });
+      setOpen(false);
+    }
+  };
+
   return (
     <div className="grid gap-6">
-       <Card>
+      <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-                <CardTitle>Your Solutions</CardTitle>
-                <CardDescription>
-                    Add and manage the software solutions you want to find clients for.
-                </CardDescription>
-            </div>
-            <Button size="sm" className="gap-1">
-                <PlusCircle className="h-4 w-4" />
-                Add Solution
+          <div>
+            <CardTitle>Your Solutions</CardTitle>
+            <CardDescription>
+              Add and manage the software solutions you want to find clients
+              for.
+            </CardDescription>
+          </div>
+          <Sheet open={open} onOpenChange={setOpen}>
+            <Button size="sm" className="gap-1" onClick={() => setOpen(true)}>
+              <PlusCircle className="h-4 w-4" />
+              Add Solution
             </Button>
+            <SheetContent>
+              <SheetHeader>
+                <SheetTitle>Add New Solution</SheetTitle>
+                <SheetDescription>
+                  Describe your new software solution. This will be used by the
+                  AI to generate lead profiles.
+                </SheetDescription>
+              </SheetHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="solution-name">Solution Name</Label>
+                  <Input
+                    id="solution-name"
+                    value={newSolution.name}
+                    onChange={(e) => setNewSolution({ ...newSolution, name: e.target.value })}
+                    placeholder="e.g., LeadGen Pro"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="solution-description">Description</Label>
+                  <Textarea
+                    id="solution-description"
+                    value={newSolution.description}
+                    onChange={(e) => setNewSolution({ ...newSolution, description: e.target.value })}
+                    rows={5}
+                    placeholder="Describe what your solution does, its key features, and value proposition."
+                  />
+                </div>
+              </div>
+              <SheetFooter>
+                <SheetClose asChild>
+                  <Button variant="outline">Cancel</Button>
+                </SheetClose>
+                <Button onClick={handleAddSolution}>Save Solution</Button>
+              </SheetFooter>
+            </SheetContent>
+          </Sheet>
         </CardHeader>
         <CardContent>
-           <Table>
+          <Table>
             <TableHeader>
-                <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Description</TableHead>
-                </TableRow>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Description</TableHead>
+              </TableRow>
             </TableHeader>
             <TableBody>
-                {solutions.map((solution) => (
-                    <TableRow key={solution.name}>
-                        <TableCell className="font-medium">{solution.name}</TableCell>
-                        <TableCell>{solution.description}</TableCell>
-                    </TableRow>
-                ))}
+              {solutions.map((solution) => (
+                <TableRow key={solution.name}>
+                  <TableCell className="font-medium">
+                    {solution.name}
+                  </TableCell>
+                  <TableCell>{solution.description}</TableCell>
+                </TableRow>
+              ))}
             </TableBody>
-           </Table>
+          </Table>
         </CardContent>
-       </Card>
+      </Card>
     </div>
   );
 }
+
+export const solutions = initialSolutions;
