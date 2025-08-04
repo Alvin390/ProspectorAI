@@ -33,8 +33,35 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
+// Mock data that would in reality come from a database
+const upcomingMeetings = [
+    { lead: "Alex Johnson" },
+    { lead: "Brenda Smith" },
+    { lead: "Carlos Gomez" }
+];
+
+const mockCallLogs = (campaigns: Campaign[]) => {
+    if (campaigns.length === 0) return [];
+    return [
+        { leadIdentifier: 'contact@innovateinc.com' },
+        { leadIdentifier: 'info@synergycorp.io' },
+        { leadIdentifier: 'jane.doe@techstart.co' },
+        { leadIdentifier: 'pm@solutions.llc' },
+    ];
+};
+
+const mockEmailLogs = (campaigns: Campaign[]) => {
+    if (campaigns.length === 0) return [];
+    return [
+        { leadIdentifier: 'contact@innovateinc.com' },
+        { leadIdentifier: 'info@synergycorp.io' },
+        { leadIdentifier: 'pm@solutions.llc' },
+        { leadIdentifier: 'jane.doe@techstart.co' },
+    ];
+};
+
+
 export default function Dashboard() {
-    const [campaigns, setCampaigns] = useState<Campaign[]>([]);
     const [stats, setStats] = useState({
         activeCampaigns: 0,
         meetingsScheduled: 0,
@@ -42,11 +69,11 @@ export default function Dashboard() {
         successRate: 0,
     });
     const [chartData, setChartData] = useState([
-      { month: 'January', meetings: 0, contacted: 0 },
-      { month: 'February', meetings: 0, contacted: 0 },
-      { month: 'March', meetings: 0, contacted: 0 },
-      { month: 'April', meetings: 0, contacted: 0 },
-      { month: 'May', meetings: 0, contacted: 0 },
+      { month: 'January', meetings: 12, contacted: 90 },
+      { month: 'February', meetings: 19, contacted: 120 },
+      { month: 'March', meetings: 25, contacted: 150 },
+      { month: 'April', meetings: 22, contacted: 180 },
+      { month: 'May', meetings: 31, contacted: 210 },
       { month: 'June', meetings: 0, contacted: 0 },
     ]);
 
@@ -55,14 +82,17 @@ export default function Dashboard() {
         if (typeof window === 'undefined') return;
 
         const savedCampaigns = localStorage.getItem('campaigns');
-        const loadedCampaigns = savedCampaigns ? JSON.parse(savedCampaigns) : [];
-        setCampaigns(loadedCampaigns);
-
+        const loadedCampaigns: Campaign[] = savedCampaigns ? JSON.parse(savedCampaigns) : [];
+        
         const activeCampaigns = loadedCampaigns.filter((c: Campaign) => c.status === 'Active').length;
         
-        // These would be replaced with real data fetching in a production app
-        const meetingsScheduled = 3; 
-        const leadsContacted = 25;
+        const meetingsScheduled = upcomingMeetings.length; 
+        
+        const callLeads = mockCallLogs(loadedCampaigns).map(l => l.leadIdentifier);
+        const emailLeads = mockEmailLogs(loadedCampaigns).map(l => l.leadIdentifier);
+        const allContactedLeads = new Set([...callLeads, ...emailLeads]);
+        const leadsContacted = allContactedLeads.size;
+
         const successRate = leadsContacted > 0 ? Math.round((meetingsScheduled / leadsContacted) * 100) : 0;
 
         setStats({
@@ -72,16 +102,19 @@ export default function Dashboard() {
             successRate,
         });
 
-        // Mock chart data based on some metrics
-        const newChartData = [
-            { month: 'January', meetings: 12, contacted: 90 },
-            { month: 'February', meetings: 19, contacted: 120 },
-            { month: 'March', meetings: 25, contacted: 150 },
-            { month: 'April', meetings: 22, contacted: 180 },
-            { month: 'May', meetings: 31, contacted: 210 },
-            { month: 'June', meetings: meetingsScheduled, contacted: leadsContacted },
-        ];
-        setChartData(newChartData);
+        // Update current month's chart data with live stats
+        setChartData(prevData => {
+            const newData = [...prevData];
+            const currentMonthIndex = newData.findIndex(d => d.month === 'June');
+            if (currentMonthIndex !== -1) {
+                newData[currentMonthIndex] = { 
+                    ...newData[currentMonthIndex], 
+                    meetings: meetingsScheduled, 
+                    contacted: leadsContacted 
+                };
+            }
+            return newData;
+        });
 
     }, []);
 
