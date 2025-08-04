@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useState, useEffect, useRef, useTransition } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useState, useEffect, useRef, useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
 import {
   Card,
   CardContent,
@@ -65,9 +65,8 @@ function SubmitButton() {
 }
 
 export default function LiveCallPage() {
-  const [state, formAction] = useFormState(handleConversationalCall, initialState);
-  const [isPending, startTransition] = useTransition();
-
+  const [state, formAction, isPending] = useActionState(handleConversationalCall, initialState);
+  
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [solutions, setSolutions] = useState<Solution[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -136,9 +135,7 @@ export default function LiveCallPage() {
   const handleFormSubmit = (formData: FormData) => {
     const userResponse = formData.get('userResponse') as string;
     if (userResponse) {
-        startTransition(() => {
-            setConversation(prev => [...prev, { role: 'user', text: userResponse }]);
-        });
+        setConversation(prev => [...prev, { role: 'user', text: userResponse }]);
         
         // We need to manually add the latest user response to the history for the action
         const currentConversation = [...conversation, { role: 'user', text: userResponse }];
@@ -252,8 +249,21 @@ export default function LiveCallPage() {
                             name="userResponse"
                             placeholder="Type the lead's response here..."
                             autoComplete="off"
+                            disabled={isPending}
                         />
-                        <SubmitButton />
+                        <Button type="submit" disabled={isPending}>
+                            {isPending ? (
+                                <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Sending...
+                                </>
+                            ) : (
+                                <>
+                                <Send className="mr-2 h-4 w-4" />
+                                Send Response
+                                </>
+                            )}
+                        </Button>
                     </form>
                 </>
             ) : (
