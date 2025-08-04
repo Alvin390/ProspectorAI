@@ -24,8 +24,8 @@ import { Switch } from '@/components/ui/switch';
 import { CampaignCreationForm } from './campaign-creation-form';
 import { handleRunOrchestrator } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
-import { type Solution, initialSolutions } from '@/app/solutions/data';
-import { type Profile, initialProfiles } from '@/app/leads/data';
+import { type Solution } from '@/app/solutions/data';
+import { type Profile } from '@/app/leads/data';
 
 export interface Campaign {
   id: string;
@@ -51,10 +51,10 @@ export default function CampaignsPage() {
     setCampaigns(savedCampaigns ? JSON.parse(savedCampaigns) : []);
 
     const savedSolutions = localStorage.getItem('solutions');
-    setSolutions(savedSolutions ? JSON.parse(savedSolutions) : initialSolutions);
+    setSolutions(savedSolutions ? JSON.parse(savedSolutions) : []);
 
     const savedProfiles = localStorage.getItem('profiles');
-    setProfiles(savedProfiles ? JSON.parse(savedProfiles) : initialProfiles);
+    setProfiles(savedProfiles ? JSON.parse(savedProfiles) : []);
   }, []);
 
   useEffect(() => {

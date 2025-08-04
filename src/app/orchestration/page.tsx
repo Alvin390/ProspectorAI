@@ -27,7 +27,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Bot, Mail, Phone, Rocket } from 'lucide-react';
+import { Bot, Mail, Phone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { handleRunOrchestrator } from '@/app/actions';
 import type { Campaign } from '@/app/campaigns/page';
@@ -50,11 +50,12 @@ export default function OrchestrationPage() {
     const savedSolutions = localStorage.getItem('solutions');
     const savedProfiles = localStorage.getItem('profiles');
     
-    setCampaigns(savedCampaigns ? JSON.parse(savedCampaigns) : []);
+    const loadedCampaigns = savedCampaigns ? JSON.parse(savedCampaigns) : [];
+    setCampaigns(loadedCampaigns);
     setSolutions(savedSolutions ? JSON.parse(savedSolutions) : []);
     setProfiles(savedProfiles ? JSON.parse(savedProfiles) : []);
 
-    const activeCampaigns = (savedCampaigns ? JSON.parse(savedCampaigns) : []).filter((c: Campaign) => c.status === 'Active');
+    const activeCampaigns = loadedCampaigns.filter((c: Campaign) => c.status === 'Active');
     if (activeCampaigns.length > 0 && !selectedCampaignId) {
         setSelectedCampaignId(activeCampaigns[0].id);
     }
@@ -70,9 +71,9 @@ export default function OrchestrationPage() {
     return solution ? solution.name : 'Unnamed Campaign';
   }
 
-  const handleGeneratePlan = () => {
+  const handleShowPlan = () => {
     if (!selectedCampaignId) {
-        toast({ title: "No campaign selected", description: "Please select an active campaign to orchestrate.", variant: "destructive" });
+        toast({ title: "No campaign selected", description: "Please select an active campaign to view its plan.", variant: "destructive" });
         return;
     }
 
@@ -94,19 +95,12 @@ export default function OrchestrationPage() {
         } else {
             setOrchestrationPlan(result.data);
             toast({
-                title: 'Orchestration Plan Generated!',
-                description: `AI has created a new outreach plan for "${getCampaignName(campaign.id)}".`,
+                title: 'Orchestration Plan Refreshed!',
+                description: `Displaying the latest AI outreach plan for "${getCampaignName(campaign.id)}".`,
             });
         }
     });
   };
-
-  const handleRunCampaign = () => {
-    toast({
-        title: "Campaign Execution Started!",
-        description: "The AI is now executing the outreach plan. (Simulation)"
-    })
-  }
   
   const getActionIcon = (action: 'EMAIL' | 'CALL' | 'FOLLOW_UP' | 'DO_NOTHING') => {
     switch(action) {
@@ -119,9 +113,9 @@ export default function OrchestrationPage() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>AI Outreach Orchestrator</CardTitle>
+        <CardTitle>AI Orchestration Control Center</CardTitle>
         <CardDescription>
-          Generate and execute multi-step outreach plans for your active campaigns.
+          Monitor the autonomous outreach plans for your active campaigns. The AI runs these campaigns automatically.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -138,8 +132,8 @@ export default function OrchestrationPage() {
                         ))}
                     </SelectContent>
                 </Select>
-                <Button onClick={handleGeneratePlan} disabled={isOrchestratorPending || !selectedCampaignId}>
-                    {isOrchestratorPending ? 'Generating...' : 'Generate Plan'}
+                <Button onClick={handleShowPlan} disabled={isOrchestratorPending || !selectedCampaignId}>
+                    {isOrchestratorPending ? 'Refreshing...' : 'Show/Refresh Plan'}
                 </Button>
             </div>
         </div>
@@ -148,22 +142,24 @@ export default function OrchestrationPage() {
              <div className="space-y-4">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Generated Outreach Plan</CardTitle>
-                        <CardDescription>The AI has determined the following next steps for this campaign.</CardDescription>
+                        <CardTitle>Live Outreach Plan</CardTitle>
+                        <CardDescription>The AI has determined the following next steps for this campaign. This view is updated when you refresh.</CardDescription>
                     </CardHeader>
                     <CardContent>
                        <Table>
                           <TableHeader>
                             <TableRow>
                               <TableHead>Lead</TableHead>
-                              <TableHead>Action</TableHead>
+                              <TableHead>Company</TableHead>
+                              <TableHead>Next Action</TableHead>
                               <TableHead>AI Reasoning</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {orchestrationPlan.outreachPlan.map((step) => (
+                            {orchestrationPlan.outreachPlan.filter(step => step.action !== 'DO_NOTHING').map((step) => (
                               <TableRow key={step.leadId}>
-                                <TableCell className="font-medium">{step.leadId}</TableCell>
+                                <TableCell className="font-medium">{step.leadId.split('-')[0].split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}</TableCell>
+                                <TableCell>{step.leadId.split('-')[1]}</TableCell>
                                 <TableCell>
                                     <div className="flex items-center gap-2">
                                        {getActionIcon(step.action)}
@@ -177,19 +173,13 @@ export default function OrchestrationPage() {
                         </Table>
                     </CardContent>
                 </Card>
-                <div className="flex justify-end">
-                    <Button onClick={handleRunCampaign}>
-                        <Rocket className="mr-2 h-4 w-4" />
-                        Run Campaign
-                    </Button>
-                </div>
              </div>
         ) : (
             <Alert>
                 <Bot className="h-4 w-4" />
                 <AlertTitle>No Plan Generated</AlertTitle>
                 <AlertDescription>
-                    Select an active campaign and click "Generate Plan" for the AI to create an outreach strategy.
+                    Select an active campaign and click "Show/Refresh Plan" for the AI to display its outreach strategy. The AI is working in the background if a campaign is active.
                 </AlertDescription>
             </Alert>
         )}

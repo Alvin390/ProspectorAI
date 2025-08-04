@@ -196,11 +196,11 @@ interface OrchestratorState {
 }
 
 const mockLeads = [
-    { id: 'lead-001', name: 'Alex Johnson', company: 'Innovate Inc.', contact: 'contact@innovateinc.com' },
-    { id: 'lead-002', name: 'Brenda Smith', company: 'Solutions LLC', contact: 'pm@solutions.llc' },
-    { id: 'lead-003', name: 'Carlos Gomez', company: 'Synergy Corp', contact: 'info@synergycorp.io' },
-    { id: 'lead-004', name: 'David Chen', company: 'DataDriven Co.', contact: '+1-555-0103' },
-    { id: 'lead-005', name: 'Emily White', company: 'Growth Partners', contact: 'emily@growth.partners' }
+    { id: 'alex johnson-Innovate Inc.', name: 'Alex Johnson', company: 'Innovate Inc.', contact: 'contact@innovateinc.com' },
+    { id: 'brenda smith-Solutions LLC', name: 'Brenda Smith', company: 'Solutions LLC', contact: 'pm@solutions.llc' },
+    { id: 'carlos gomez-Synergy Corp', name: 'Carlos Gomez', company: 'Synergy Corp', contact: 'info@synergycorp.io' },
+    { id: 'david chen-DataDriven Co.', name: 'David Chen', company: 'DataDriven Co.', contact: '+1-555-0103' },
+    { id: 'emily white-Growth Partners', name: 'Emily White', company: 'Growth Partners', contact: 'emily@growth.partners' }
 ];
 
 export async function handleRunOrchestrator(campaign: Campaign, solutions: Solution[], profiles: Profile[]): Promise<OrchestratorState> {
