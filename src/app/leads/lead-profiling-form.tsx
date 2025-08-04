@@ -65,6 +65,10 @@ export function LeadProfilingForm({ solutions, onProfileSave, editingProfile, on
   useEffect(() => {
     if (state.data && state.message === 'success') {
       setGeneratedData(state.data);
+      // Pre-fill the name with the AI's suggestion
+      if (state.data.suggestedName) {
+        setName(state.data.suggestedName);
+      }
     }
   }, [state]);
 
@@ -142,7 +146,7 @@ export function LeadProfilingForm({ solutions, onProfileSave, editingProfile, on
          <>
             <div className='space-y-2 pt-4'>
                 <Label htmlFor='profile-name'>Profile Name</Label>
-                <p className="text-sm text-muted-foreground">Give this generated profile a short, memorable name.</p>
+                <p className="text-sm text-muted-foreground">Give this generated profile a short, memorable name. The AI has suggested one for you.</p>
                 <Input 
                     id="profile-name" 
                     placeholder="e.g., NY FinTech Startups"

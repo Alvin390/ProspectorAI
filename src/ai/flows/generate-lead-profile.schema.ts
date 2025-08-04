@@ -11,6 +11,9 @@ export const GenerateLeadProfileInputSchema = z.string().describe('The descripti
 export type GenerateLeadProfileInput = z.infer<typeof GenerateLeadProfileInputSchema>;
 
 export const GenerateLeadProfileOutputSchema = z.object({
+  suggestedName: z
+    .string()
+    .describe('A short, descriptive name for this generated profile (e.g., "NY FinTech Startups").'),
   attributes: z
     .string()
     .describe('Key attributes of the ideal customer, including demographics, interests, and professional background.'),

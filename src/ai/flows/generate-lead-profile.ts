@@ -33,6 +33,7 @@ Instead of focusing on a single ideal person, think as broadly and creatively as
 3.  **Detail the Profile:** For the segments you identify, generate a comprehensive profile that includes:
     *   **Key Attributes:** Describe the common characteristics of these segments. Include their industry, potential size, common goals, and the specific pain points the solution would address for them.
     *   **Online Presence:** Describe where these organizations and their key decision-makers are likely to be found online. Mention professional networks (like LinkedIn), industry-specific forums, publications they might read, and conferences they might attend.
+4.  **Suggest a Name:** Based on your analysis, create a short, descriptive, and memorable name for this profile (e.g., "Global E-commerce Brands," "US Regional Hospitals," "UK FinTech Startups"). This will be the 'suggestedName'.
 
 **Context:**
 ---
@@ -40,7 +41,7 @@ Instead of focusing on a single ideal person, think as broadly and creatively as
 {{{$input}}}
 ---
 
-Based on the provided context, generate the "Key Attributes" and "Online Presence" for the wide range of potential customer segments, covering local, regional, and international possibilities.
+Based on the provided context, generate the "suggestedName", "Key Attributes", and "Online Presence" for the wide range of potential customer segments, covering local, regional, and international possibilities.
 `,
 });
 
