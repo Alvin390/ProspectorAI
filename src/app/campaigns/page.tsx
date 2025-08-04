@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useTransition, useRef } from 'react';
 import {
   Card,
   CardContent,
@@ -44,28 +44,32 @@ export default function CampaignsPage() {
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const hasLoaded = useRef(false);
 
   useEffect(() => {
-    // Load state from localStorage on the client
-    const savedCampaigns = localStorage.getItem('campaigns');
-    if (savedCampaigns) {
-        setCampaigns(JSON.parse(savedCampaigns));
-    }
+    // Load state from localStorage on the client, only once.
+    if (!hasLoaded.current) {
+        const savedCampaigns = localStorage.getItem('campaigns');
+        if (savedCampaigns) {
+            setCampaigns(JSON.parse(savedCampaigns));
+        }
 
-    const savedSolutions = localStorage.getItem('solutions');
-    if (savedSolutions) {
-        setSolutions(JSON.parse(savedSolutions));
-    }
+        const savedSolutions = localStorage.getItem('solutions');
+        if (savedSolutions) {
+            setSolutions(JSON.parse(savedSolutions));
+        }
 
-    const savedProfiles = localStorage.getItem('profiles');
-    if(savedProfiles) {
-        setProfiles(JSON.parse(savedProfiles));
+        const savedProfiles = localStorage.getItem('profiles');
+        if(savedProfiles) {
+            setProfiles(JSON.parse(savedProfiles));
+        }
+        hasLoaded.current = true;
     }
   }, []);
 
   useEffect(() => {
-    // This effect runs only on the client, so it's safe to use localStorage
-    if (typeof window !== 'undefined') {
+    // This effect runs only on the client and after initial load.
+    if (hasLoaded.current) {
         localStorage.setItem('campaigns', JSON.stringify(campaigns));
     }
   }, [campaigns]);
