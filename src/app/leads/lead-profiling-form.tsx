@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { handleGenerateLeadProfile } from '@/app/actions';
-import { Terminal } from 'lucide-react';
+import { Terminal, Save } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/select';
 import type { Solution } from '@/app/solutions/data';
 import type { GenerateLeadProfileOutput } from '@/ai/flows/generate-lead-profile.schema';
+import type { Profile } from './page';
 
 const initialState = {
   message: '',
@@ -37,21 +38,27 @@ function SubmitButton() {
 
 interface LeadProfilingFormProps {
   solutions: Solution[];
-  onProfileGenerated: (description: string, data: GenerateLeadProfileOutput) => void;
-  editingDescription?: string;
+  onProfileSave: (profileData: Partial<Profile>, data: GenerateLeadProfileOutput) => void;
+  editingProfile?: Profile | null;
 }
 
-export function LeadProfilingForm({ solutions, onProfileGenerated, editingDescription }: LeadProfilingFormProps) {
+export function LeadProfilingForm({ solutions, onProfileSave, editingProfile }: LeadProfilingFormProps) {
   const [state, formAction] = useActionState(handleGenerateLeadProfile, initialState);
-  const [description, setDescription] = useState(editingDescription || '');
-  
+  const [description, setDescription] = useState(editingProfile?.description || '');
+  const [generatedData, setGeneratedData] = useState<GenerateLeadProfileOutput | null>(editingProfile?.profileData || null);
+
+  useEffect(() => {
+    if (editingProfile) {
+        setDescription(editingProfile.description);
+        setGeneratedData(editingProfile.profileData);
+    }
+  }, [editingProfile]);
+
   useEffect(() => {
     if (state.data && state.message === 'success') {
-      const currentDescription = (document.querySelector('[name="description"]') as HTMLInputElement)?.value;
-      onProfileGenerated(currentDescription, state.data);
+      setGeneratedData(state.data);
     }
-    // We don't need to show a toast here as the parent component will update the list
-  }, [state, onProfileGenerated]);
+  }, [state]);
 
   const handleSolutionChange = (value: string) => {
     const solution = solutions.find((s) => s.name === value);
@@ -61,6 +68,22 @@ export function LeadProfilingForm({ solutions, onProfileGenerated, editingDescri
       setDescription('');
     }
   };
+  
+  const handleSaveClick = () => {
+    if (generatedData) {
+        const profileData: Partial<Profile> = {
+            id: editingProfile?.id,
+            description: description,
+        };
+        onProfileSave(profileData, generatedData);
+        // Reset form after saving
+        setDescription('');
+        setGeneratedData(null);
+        state.message = '';
+        state.data = null;
+        state.error = null;
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -108,25 +131,33 @@ export function LeadProfilingForm({ solutions, onProfileGenerated, editingDescri
         </Alert>
       )}
 
-      {state.data && state.message === 'success' && (
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Key Attributes</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground whitespace-pre-wrap">
-              {state.data.attributes}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Online Presence</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground whitespace-pre-wrap">
-              {state.data.onlinePresence}
-            </CardContent>
-          </Card>
-        </div>
+      {generatedData && (
+         <>
+            <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+                <CardHeader>
+                <CardTitle>Key Attributes</CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground whitespace-pre-wrap">
+                {generatedData.attributes}
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                <CardTitle>Online Presence</CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground whitespace-pre-wrap">
+                {generatedData.onlinePresence}
+                </CardContent>
+            </Card>
+            </div>
+            <div className="flex justify-end">
+                <Button onClick={handleSaveClick}>
+                    <Save className="mr-2 h-4 w-4" />
+                    {editingProfile ? 'Update Profile' : 'Save New Profile'}
+                </Button>
+            </div>
+        </>
       )}
     </div>
   );

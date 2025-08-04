@@ -30,6 +30,7 @@ import {
 import { LeadProfilingForm } from './lead-profiling-form';
 import { initialSolutions } from '@/app/solutions/data';
 import type { GenerateLeadProfileOutput } from '@/ai/flows/generate-lead-profile.schema';
+import { useToast } from '@/hooks/use-toast';
 
 export interface Profile {
   id: string;
@@ -89,7 +90,8 @@ export default function LeadProfilingPage() {
     return initialProfiles;
   });
   
-  const [editingDescription, setEditingDescription] = useState<string | undefined>(undefined);
+  const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -97,23 +99,37 @@ export default function LeadProfilingPage() {
     }
   }, [profiles]);
 
-  const handleProfileGenerated = (description: string, data: GenerateLeadProfileOutput) => {
-    const newProfile: Profile = {
-        id: `profile-${Date.now()}`,
-        description,
-        status: 'Completed',
-        createdAt: new Date().toISOString().split('T')[0],
-        profileData: data
-    };
-    setProfiles(prev => [newProfile, ...prev]);
+  const handleProfileSave = (profileData: Partial<Profile>, generatedData: GenerateLeadProfileOutput) => {
+    if (profileData.id) { // This is an update
+        setProfiles(profiles.map(p => p.id === profileData.id ? {
+            ...p,
+            description: profileData.description!,
+            profileData: generatedData,
+        } : p));
+        toast({ title: "Profile Updated", description: "The lead profile has been successfully updated." });
+    } else { // This is a new profile
+        const newProfile: Profile = {
+            id: `profile-${Date.now()}`,
+            description: profileData.description!,
+            status: 'Completed',
+            createdAt: new Date().toISOString().split('T')[0],
+            profileData: generatedData
+        };
+        setProfiles(prev => [newProfile, ...prev]);
+        toast({ title: "Profile Saved", description: "The new lead profile has been saved." });
+    }
+    setEditingProfile(null); // Clear editing state
   };
   
   const handleDeleteProfile = (id: string) => {
     setProfiles(profiles.filter(p => p.id !== id));
+    toast({ title: "Profile Deleted", variant: "destructive" });
   };
   
-  const handleEditProfile = (description: string) => {
-      setEditingDescription(description);
+  const handleEditProfile = (profile: Profile) => {
+      setEditingProfile(profile);
+      // Scroll to top to make the form visible
+      window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
 
@@ -121,18 +137,20 @@ export default function LeadProfilingPage() {
     <div className="grid gap-6">
       <Card>
         <CardHeader>
-          <CardTitle>AI-Powered Lead Profiling</CardTitle>
+          <CardTitle>{editingProfile ? `Editing: ${editingProfile.description}` : 'AI-Powered Lead Profiling'}</CardTitle>
           <CardDescription>
-            Select one of your solutions or describe your ideal customer, and our AI will generate a detailed
-            profile to help you find the perfect leads.
+             {editingProfile 
+                ? 'Regenerate or modify the description for this profile.' 
+                : 'Select one of your solutions or describe your ideal customer, and our AI will generate a detailed profile to help you find the perfect leads.'
+             }
           </CardDescription>
         </CardHeader>
         <CardContent>
           <LeadProfilingForm 
             solutions={initialSolutions} 
-            onProfileGenerated={handleProfileGenerated}
-            editingDescription={editingDescription}
-            key={editingDescription} // Force re-render when editing
+            onProfileSave={handleProfileSave}
+            editingProfile={editingProfile}
+            key={editingProfile?.id || 'new'} // Force re-render when editing
           />
         </CardContent>
       </Card>
@@ -173,7 +191,7 @@ export default function LeadProfilingPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleEditProfile(profile.description)}>
+                        <DropdownMenuItem onClick={() => handleEditProfile(profile)}>
                           Edit
                         </DropdownMenuItem>
                         <DropdownMenuItem
