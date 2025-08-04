@@ -27,7 +27,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { Solution } from '@/app/solutions/data';
 import type { GenerateCampaignContentOutput } from '@/ai/flows/generate-campaign-content.schema';
 import type { Campaign } from './page';
-import type { Profile } from '@/app/leads/page';
+import type { Profile } from '@/app/leads/data';
 
 const initialState = {
   message: '',

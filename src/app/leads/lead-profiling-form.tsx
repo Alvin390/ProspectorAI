@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/select';
 import type { Solution } from '@/app/solutions/data';
 import type { GenerateLeadProfileOutput } from '@/ai/flows/generate-lead-profile.schema';
-import type { Profile } from './page';
+import type { Profile } from './data';
 
 const initialState = {
   message: '',
