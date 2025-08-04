@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { initialSolutions } from '@/app/solutions/data';
+import type { Solution } from '@/app/solutions/data';
 import type { GenerateCampaignContentOutput } from '@/ai/flows/generate-campaign-content.schema';
 import type { Campaign } from './page';
 
@@ -44,12 +44,13 @@ function SubmitButton({ disabled }: { disabled?: boolean }) {
 }
 
 interface CampaignCreationFormProps {
+    solutions: Solution[];
     onCampaignSubmit: (campaignData: Omit<Campaign, 'id' | 'status'>) => void;
     editingCampaign: Campaign | null;
     clearEditing: () => void;
 }
 
-export function CampaignCreationForm({ onCampaignSubmit, editingCampaign, clearEditing }: CampaignCreationFormProps) {
+export function CampaignCreationForm({ solutions, onCampaignSubmit, editingCampaign, clearEditing }: CampaignCreationFormProps) {
   const [state, formAction] = useActionState(handleGenerateCampaignContent, initialState);
   const { toast } = useToast();
   const [emailScript, setEmailScript] = useState('');
@@ -61,6 +62,9 @@ export function CampaignCreationForm({ onCampaignSubmit, editingCampaign, clearE
   
   const [selectedSolution, setSelectedSolution] = useState<string>('');
   const [selectedLeadProfile, setSelectedLeadProfile] = useState<string>('');
+  
+  // This needs to be passed in from the page now
+  // const [solutions, setSolutions] = useState<Solution[]>([]);
 
   useEffect(() => {
     if (editingCampaign) {
@@ -165,7 +169,7 @@ export function CampaignCreationForm({ onCampaignSubmit, editingCampaign, clearE
                         <SelectValue placeholder="Select a solution" />
                     </SelectTrigger>
                     <SelectContent>
-                        {initialSolutions.map(solution => (
+                        {solutions.map(solution => (
                             <SelectItem key={solution.name} value={solution.name}>{solution.name}</SelectItem>
                         ))}
                     </SelectContent>

@@ -28,7 +28,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { LeadProfilingForm } from './lead-profiling-form';
-import { initialSolutions } from '@/app/solutions/data';
+import { initialSolutions, type Solution } from '@/app/solutions/data';
 import type { GenerateLeadProfileOutput } from '@/ai/flows/generate-lead-profile.schema';
 import { useToast } from '@/hooks/use-toast';
 
@@ -90,6 +90,7 @@ export default function LeadProfilingPage() {
     return initialProfiles;
   });
   
+  const [solutions, setSolutions] = useState<Solution[]>([]);
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
   const { toast } = useToast();
 
@@ -98,6 +99,22 @@ export default function LeadProfilingPage() {
         localStorage.setItem('profiles', JSON.stringify(profiles));
     }
   }, [profiles]);
+  
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+        const savedSolutions = localStorage.getItem('solutions');
+        if (savedSolutions) {
+            try {
+                const parsed = JSON.parse(savedSolutions);
+                setSolutions(Array.isArray(parsed) ? parsed : initialSolutions);
+            } catch {
+                setSolutions(initialSolutions);
+            }
+        } else {
+            setSolutions(initialSolutions);
+        }
+    }
+  }, []);
 
   const handleProfileSave = (profileData: Partial<Profile>, generatedData: GenerateLeadProfileOutput) => {
     if (profileData.id && editingProfile) { // This is an update
@@ -151,7 +168,7 @@ export default function LeadProfilingPage() {
         </CardHeader>
         <CardContent>
           <LeadProfilingForm 
-            solutions={initialSolutions} 
+            solutions={solutions} 
             onProfileSave={handleProfileSave}
             editingProfile={editingProfile}
             onCancel={handleCancelEdit}

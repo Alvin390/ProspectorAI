@@ -1,3 +1,4 @@
+
 'use server';
 
 import {
@@ -20,8 +21,8 @@ import {
     runOrchestrator,
 } from '@/ai/flows/outreach-orchestrator';
 import { z } from 'zod';
-import { initialSolutions } from './solutions/data';
 import type { Campaign } from './campaigns/page';
+import type { Solution } from './solutions/data';
 
 interface LeadProfileFormState {
   message: string;
@@ -66,33 +67,35 @@ export async function handleGenerateCampaignContent(
   const schema = z.object({
     solution: z.string().min(1, 'Please select a solution'),
     leadProfile: z.string().min(1, 'Please select a lead profile'),
+    solutions: z.string(), // We will pass the full solutions list as a JSON string
   });
 
-  const validated = schema.safeParse({
-    solution: formData.get('solution'),
-    leadProfile: formData.get('leadProfile'),
-  });
-
-  if (!validated.success) {
-    return {
-      message: 'error',
-      data: null,
-      error: validated.error.errors.map((e) => e.message).join(', '),
-    };
-  }
-  
   try {
-    const solution = initialSolutions.find(s => s.name === validated.data.solution);
+    const validated = schema.parse({
+      solution: formData.get('solution'),
+      leadProfile: formData.get('leadProfile'),
+      solutions: formData.get('solutions'),
+    });
+
+    const solutions: Solution[] = JSON.parse(validated.solutions);
+    const solution = solutions.find(s => s.name === validated.solution);
     if (!solution) {
       return { message: 'error', data: null, error: 'Selected solution not found.' };
     }
 
     const result = await generateCampaignContent({
         solutionDescription: solution.description,
-        leadProfile: validated.data.leadProfile
+        leadProfile: validated.leadProfile
     });
     return { message: 'success', data: result, error: null };
   } catch (e: any) {
+     if (e instanceof z.ZodError) {
+        return {
+          message: 'error',
+          data: null,
+          error: e.errors.map((e) => e.message).join(', '),
+        };
+      }
     return { message: 'error', data: null, error: e.message || 'An unknown error occurred.' };
   }
 }
@@ -181,8 +184,8 @@ const mockLeads = [
     { id: 'lead-005', name: 'Emily White', company: 'Growth Partners', contact: 'emily@growth.partners' }
 ];
 
-export async function handleRunOrchestrator(campaign: Campaign): Promise<OrchestratorState> {
-    const solution = initialSolutions.find(s => s.name === campaign.solutionName);
+export async function handleRunOrchestrator(campaign: Campaign, solutions: Solution[]): Promise<OrchestratorState> {
+    const solution = solutions.find(s => s.name === campaign.solutionName);
     if (!solution) {
         return { message: 'error', error: 'Solution definition not found for this campaign.' };
     }

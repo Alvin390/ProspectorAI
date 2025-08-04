@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -32,17 +32,52 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { initialSolutions, type Solution } from './data';
+import { useToast } from '@/hooks/use-toast';
 
 export default function SolutionsPage() {
-  const [solutions, setSolutions] = useState<Solution[]>(initialSolutions);
+  const [solutions, setSolutions] = useState<Solution[]>([]);
   const [open, setOpen] = useState(false);
   const [newSolution, setNewSolution] = useState<Solution>({ name: '', description: '' });
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedSolutions = localStorage.getItem('solutions');
+      if (savedSolutions) {
+        try {
+          const parsed = JSON.parse(savedSolutions);
+          setSolutions(Array.isArray(parsed) ? parsed : initialSolutions);
+        } catch {
+          setSolutions(initialSolutions);
+        }
+      } else {
+        setSolutions(initialSolutions);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && solutions.length > 0) {
+      localStorage.setItem('solutions', JSON.stringify(solutions));
+    }
+  }, [solutions]);
+
 
   const handleAddSolution = () => {
     if (newSolution.name && newSolution.description) {
       setSolutions([...solutions, newSolution]);
       setNewSolution({ name: '', description: '' });
       setOpen(false);
+      toast({
+        title: "Solution Added",
+        description: `The "${newSolution.name}" solution has been saved.`,
+      })
+    } else {
+        toast({
+            title: "Missing Information",
+            description: "Please provide both a name and a description for the solution.",
+            variant: "destructive",
+        })
     }
   };
 

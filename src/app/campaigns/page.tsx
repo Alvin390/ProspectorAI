@@ -24,6 +24,7 @@ import { Switch } from '@/components/ui/switch';
 import { CampaignCreationForm } from './campaign-creation-form';
 import { handleRunOrchestrator } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
+import { type Solution, initialSolutions } from '@/app/solutions/data';
 
 export interface Campaign {
   id: string;
@@ -68,6 +69,7 @@ export default function CampaignsPage() {
     }
     return initialCampaigns;
   });
+  const [solutions, setSolutions] = useState<Solution[]>([]);
   const [activeTab, setActiveTab] = useState('tracker');
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -78,6 +80,22 @@ export default function CampaignsPage() {
         localStorage.setItem('campaigns', JSON.stringify(campaigns));
     }
   }, [campaigns]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+        const savedSolutions = localStorage.getItem('solutions');
+        if (savedSolutions) {
+            try {
+                const parsed = JSON.parse(savedSolutions);
+                setSolutions(Array.isArray(parsed) ? parsed : initialSolutions);
+            } catch {
+                setSolutions(initialSolutions);
+            }
+        } else {
+            setSolutions(initialSolutions);
+        }
+    }
+  }, []);
 
   const handleCampaignSubmit = (
     campaignData: Omit<Campaign, 'id' | 'status'>
@@ -178,6 +196,7 @@ export default function CampaignsPage() {
           </CardHeader>
           <CardContent>
             <CampaignCreationForm 
+              solutions={solutions}
               onCampaignSubmit={handleCampaignSubmit} 
               editingCampaign={editingCampaign}
               clearEditing={clearEditing}
