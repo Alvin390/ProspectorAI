@@ -83,12 +83,7 @@ export function CampaignCreationForm({ solutions, profiles, onCampaignSubmit, ed
     } else {
       // Reset form when not editing or when editingCampaign is cleared
       setIsEditing(false);
-      if (formRef.current) formRef.current.reset();
-      setGeneratedContent(null);
-      setEmailScript('');
-      setCallScript('');
-      setSelectedSolution('');
-      setSelectedLeadProfile('');
+      resetFormState();
     }
   }, [editingCampaign]);
 
@@ -257,7 +252,7 @@ export function CampaignCreationForm({ solutions, profiles, onCampaignSubmit, ed
           </div>
           <div className="flex justify-end gap-2 mt-4">
             {isEditing ? (
-              <Button variant="outline" onClick={resetFormState}>Cancel</Button>
+              <Button variant="outline" onClick={clearEditing}>Cancel</Button>
             ) : (
                 <Button variant="outline" onClick={resetFormState}>
                     Generate New
