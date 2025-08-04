@@ -101,7 +101,7 @@ export default function TemplatesPage() {
                   placeholder="Hi {{firstName}}, ..."
                 />
                 <p className="text-xs text-muted-foreground">
-                  Use tokens like `{{firstName}}`, `{{lastName}}`, `{{companyName}}` for personalization.
+                  Use tokens like `{'{{firstName}}'}`, `{'{{lastName}}'}`, `{'{{companyName}}'}` for personalization.
                 </p>
               </div>
             </div>
