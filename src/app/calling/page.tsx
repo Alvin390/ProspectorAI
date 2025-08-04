@@ -1,3 +1,7 @@
+
+'use client';
+
+import { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -14,41 +18,83 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import type { Campaign } from '@/app/campaigns/page';
 
-const callLog = [
-  {
-    lead: 'John Doe @ Acme Inc.',
-    status: 'Meeting Scheduled',
-    duration: '03:45',
-    reason: '-',
-  },
-  {
-    lead: 'Jane Smith @ Beta Corp.',
-    status: 'Rejected',
-    duration: '01:22',
-    reason: 'Not interested in new tools.',
-  },
-  {
-    lead: 'Sam Wilson @ Gamma LLC',
-    status: 'In Progress',
-    duration: '02:10',
-    reason: '-',
-  },
-  {
-    lead: 'Lisa Ray @ Delta Co.',
-    status: 'Voicemail',
-    duration: '00:30',
-    reason: '-',
-  },
-  {
-    lead: 'Mike Chen @ Epsilon Ltd.',
-    status: 'Ringing',
-    duration: '00:15',
-    reason: '-',
-  },
-];
+// Mock function to fetch campaigns. In a real app, this would be an API call.
+const getCampaigns = (): Campaign[] => {
+  // This is a placeholder. In a real app, you'd fetch this from a database or a shared state management solution.
+  // For now, we'll use a simplified version of the initial campaigns.
+  return [
+     {
+        id: "1",
+        solutionName: "Q4 Fintech Outreach",
+        leadProfile: "Financial services companies in New York",
+        status: 'Active',
+        emailScript: "Initial email script for Fintech.",
+        callScript: "Initial call script for Fintech."
+    },
+    {
+        id: "2",
+        solutionName: "EU E-commerce Initiative",
+        leadProfile: "E-commerce businesses in Europe",
+        status: 'Paused',
+        emailScript: "Initial email script for E-commerce.",
+        callScript: "Initial call script for E-commerce."
+    }
+  ];
+}
+
+
+const generateMockCallLog = (campaigns: Campaign[]) => {
+    const activeCampaigns = campaigns.filter(c => c.status === 'Active');
+    const log: any[] = [];
+
+    activeCampaigns.forEach(campaign => {
+        // Add a few mock calls for each active campaign
+        log.push(
+            {
+                lead: `John Doe @ Acme Inc. (${campaign.solutionName})`,
+                status: 'Meeting Scheduled',
+                duration: '03:45',
+                reason: '-',
+            },
+            {
+                lead: `Jane Smith @ Beta Corp. (${campaign.solutionName})`,
+                status: 'Rejected',
+                duration: '01:22',
+                reason: 'Not interested in new tools.',
+            },
+            {
+                lead: `Sam Wilson @ Gamma LLC (${campaign.solutionName})`,
+                status: 'In Progress',
+                duration: '02:10',
+                reason: '-',
+            }
+        )
+    });
+     if (log.length === 0) {
+        log.push({
+            lead: 'No active campaigns',
+            status: 'Idle',
+            duration: '-',
+            reason: 'Start a campaign to see call logs.',
+        })
+    }
+
+
+    return log;
+}
+
 
 export default function CallingPage() {
+  const [callLog, setCallLog] = useState<any[]>([]);
+
+  useEffect(() => {
+    const campaigns = getCampaigns();
+    setCallLog(generateMockCallLog(campaigns));
+  }, []);
+
+
   return (
     <Card>
       <CardHeader>
@@ -68,8 +114,8 @@ export default function CallingPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {callLog.map((call) => (
-              <TableRow key={call.lead}>
+            {callLog.map((call, index) => (
+              <TableRow key={index}>
                 <TableCell className="font-medium">{call.lead}</TableCell>
                 <TableCell>
                   <Badge
