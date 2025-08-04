@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { Switch } from '@/components/ui/switch';
 
 const initialState = {
   message: '',
@@ -64,24 +65,30 @@ export function CampaignCreationForm() {
             required
           />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="lead-profile">Lead Profile</Label>
-          <Select name="leadProfile" required>
-            <SelectTrigger id="lead-profile">
-              <SelectValue placeholder="Select a lead profile" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="profile-1">
-                Tech startups in Silicon Valley
-              </SelectItem>
-              <SelectItem value="profile-2">
-                E-commerce businesses in Europe
-              </SelectItem>
-              <SelectItem value="profile-3">
-                Financial services companies in New York
-              </SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="lead-profile">Lead Profile</Label>
+            <Select name="leadProfile" required>
+              <SelectTrigger id="lead-profile">
+                <SelectValue placeholder="Select a lead profile" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="profile-1">
+                  Tech startups in Silicon Valley
+                </SelectItem>
+                <SelectItem value="profile-2">
+                  E-commerce businesses in Europe
+                </SelectItem>
+                <SelectItem value="profile-3">
+                  Financial services companies in New York
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center space-x-2 pt-6">
+            <Switch id="continuous-campaign" name="continuous" />
+            <Label htmlFor="continuous-campaign">Continuous Campaign</Label>
+          </div>
         </div>
         <SubmitButton />
       </form>
