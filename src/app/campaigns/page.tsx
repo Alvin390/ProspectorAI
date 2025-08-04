@@ -70,7 +70,7 @@ export default function CampaignsPage() {
     }
   }, [campaigns]);
 
-  const runOrchestratorForCampaign = (campaign: Campaign) => {
+  const runOrchestratorForCampaign = (campaign: Campaign, isResuming = false) => {
      startTransition(async () => {
           const result = await handleRunOrchestrator(campaign, solutions, profiles);
           if (result.message === 'error') {
@@ -82,7 +82,7 @@ export default function CampaignsPage() {
           } else {
                const solution = solutions.find(s => s.id === campaign.solutionId);
                toast({
-                  title: 'Orchestrator Started!',
+                  title: isResuming ? 'Campaign Resumed!' : 'Orchestrator Started!',
                   description: `Campaign "${solution?.name}" is now being managed by the AI. View progress on the Orchestration page.`,
               });
                if (result.data) {
@@ -126,10 +126,22 @@ export default function CampaignsPage() {
     ));
 
     if (newStatus === 'Active') {
-        runOrchestratorForCampaign(updatedCampaign);
+        const planExists = localStorage.getItem(`orchestrationPlan_${campaign.id}`);
+        if (planExists) {
+            // If a plan exists, the campaign is resuming. We don't need to generate a new plan.
+            const solution = solutions.find(s => s.id === campaign.solutionId);
+            toast({
+                title: 'Campaign Resumed!',
+                description: `Campaign "${solution?.name}" is active again and will continue from where it left off.`,
+            });
+        } else {
+            // This is the first time the campaign is being activated.
+            runOrchestratorForCampaign(updatedCampaign);
+        }
     } else {
         // Optional: clear the plan when paused
-        localStorage.removeItem(`orchestrationPlan_${campaign.id}`);
+        // For now, we will keep the plan so it can be resumed.
+        // localStorage.removeItem(`orchestrationPlan_${campaign.id}`);
     }
   }
 
