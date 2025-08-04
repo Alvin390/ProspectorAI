@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { LeadProfilingForm } from './lead-profiling-form';
-import { initialSolutions } from '@/app/solutions/page';
+import { initialSolutions } from '@/app/solutions/data';
 
 const pastProfiles = [
   {

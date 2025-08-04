@@ -9,7 +9,7 @@ import {
   type GenerateCampaignContentOutput,
 } from '@/ai/flows/generate-campaign-content';
 import { z } from 'zod';
-import { initialSolutions } from './solutions/page';
+import { initialSolutions } from './solutions/data';
 
 interface LeadProfileFormState {
   message: string;

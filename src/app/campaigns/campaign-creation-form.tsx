@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
-import { initialSolutions } from '@/app/solutions/page';
+import { initialSolutions } from '@/app/solutions/data';
 
 const initialState = {
   message: '',

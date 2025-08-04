@@ -31,24 +31,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-
-export interface Solution {
-  name: string;
-  description: string;
-}
-
-export const initialSolutions: Solution[] = [
-  {
-    name: 'ProspectorAI',
-    description:
-      'AI-powered lead builder and discovery tool to define target personas, optimizing for fit and conversion.',
-  },
-  {
-    name: 'CampaignGen',
-    description:
-      'Generates personalized, multi-channel (email & AI voice call) outreach campaigns based on your value proposition.',
-  },
-];
+import { initialSolutions, type Solution } from './data';
 
 export default function SolutionsPage() {
   const [solutions, setSolutions] = useState<Solution[]>(initialSolutions);
@@ -141,5 +124,3 @@ export default function SolutionsPage() {
     </div>
   );
 }
-
-export const solutions = initialSolutions;

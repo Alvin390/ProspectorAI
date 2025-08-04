@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { Solution } from '@/app/solutions/page';
+import type { Solution } from '@/app/solutions/data';
 
 const initialState = {
   message: '',
