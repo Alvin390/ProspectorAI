@@ -34,10 +34,10 @@ const initialState = {
   error: null,
 };
 
-function SubmitButton() {
+function SubmitButton({ disabled }: { disabled?: boolean }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending} className="w-full md:w-auto">
+    <Button type="submit" disabled={disabled || pending} className="w-full md:w-auto">
       {pending ? 'Generating...' : 'Generate Campaign Content'}
     </Button>
   );
@@ -159,18 +159,11 @@ export function CampaignCreationForm({ onCampaignSubmit, editingCampaign, clearE
 
   return (
     <div className="space-y-6">
-      <form ref={formRef} action={formAction} className="space-y-4" onSubmit={(e) => {
-          e.preventDefault();
-          const formData = new FormData(e.currentTarget);
-          // Only call the AI generation action if content hasn't been generated yet
-          if (!generatedContent) {
-            formAction(formData);
-          }
-      }}>
+      <form ref={formRef} action={formAction} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
                 <Label htmlFor="solution">Solution</Label>
-                <Select name="solution" required value={selectedSolution} onValueChange={setSelectedSolution} disabled={isEditing}>
+                <Select name="solution" required value={selectedSolution} onValueChange={setSelectedSolution} disabled={isEditing || !!generatedContent}>
                     <SelectTrigger id="solution">
                         <SelectValue placeholder="Select a solution" />
                     </SelectTrigger>
@@ -183,7 +176,7 @@ export function CampaignCreationForm({ onCampaignSubmit, editingCampaign, clearE
             </div>
             <div className="space-y-2">
                 <Label htmlFor="lead-profile">Lead Profile</Label>
-                <Select name="leadProfile" required value={selectedLeadProfile} onValueChange={setSelectedLeadProfile} disabled={isEditing}>
+                <Select name="leadProfile" required value={selectedLeadProfile} onValueChange={setSelectedLeadProfile} disabled={isEditing || !!generatedContent}>
                 <SelectTrigger id="lead-profile">
                     <SelectValue placeholder="Select a lead profile" />
                 </SelectTrigger>
@@ -202,7 +195,7 @@ export function CampaignCreationForm({ onCampaignSubmit, editingCampaign, clearE
             </div>
         </div>
         <div className="flex flex-col md:flex-row gap-2">
-           {!isEditing && !generatedContent && <SubmitButton />}
+           {!isEditing && <SubmitButton disabled={!!generatedContent} />}
         </div>
       </form>
 
