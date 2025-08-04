@@ -64,6 +64,28 @@ export default function CampaignsPage() {
     }
   }, [campaigns]);
 
+  const runOrchestratorForCampaign = (campaign: Campaign) => {
+     startTransition(async () => {
+          const result = await handleRunOrchestrator(campaign, solutions, profiles);
+          if (result.message === 'error') {
+              toast({
+                  title: 'Orchestrator Failed',
+                  description: result.error,
+                  variant: 'destructive',
+              });
+          } else {
+               const solution = solutions.find(s => s.id === campaign.solutionId);
+               toast({
+                  title: 'Orchestrator Started!',
+                  description: `Campaign "${solution?.name}" is now being managed by the AI. View progress on the Orchestration page.`,
+              });
+               if (result.data) {
+                  localStorage.setItem(`orchestrationPlan_${campaign.id}`, JSON.stringify(result.data));
+               }
+          }
+      });
+  }
+
 
   const handleCampaignSubmit = (
     campaignData: Omit<Campaign, 'id' | 'status'>
@@ -84,23 +106,7 @@ export default function CampaignsPage() {
           status: 'Active' as const,
       };
       setCampaigns((prev) => [newCampaign, ...prev]);
-
-      startTransition(async () => {
-          const result = await handleRunOrchestrator(newCampaign, solutions, profiles);
-          if (result.message === 'error') {
-              toast({
-                  title: 'Orchestrator Failed',
-                  description: result.error,
-                  variant: 'destructive',
-              });
-          } else {
-               const solution = solutions.find(s => s.id === newCampaign.solutionId);
-               toast({
-                  title: 'Orchestrator Started!',
-                  description: `Campaign "${solution?.name}" is now being managed by the AI.`,
-              });
-          }
-      });
+      runOrchestratorForCampaign(newCampaign);
     }
     setActiveTab('tracker');
   };
@@ -108,28 +114,16 @@ export default function CampaignsPage() {
   const toggleCampaignStatus = (campaign: Campaign) => {
     const newStatus = campaign.status === 'Active' ? 'Paused' : 'Active';
     const updatedCampaign = { ...campaign, status: newStatus };
-    const solution = solutions.find(s => s.id === campaign.solutionId);
-
+    
     setCampaigns(campaigns.map(c => 
       c.id === campaign.id ? updatedCampaign : c
     ));
 
     if (newStatus === 'Active') {
-        startTransition(async () => {
-            const result = await handleRunOrchestrator(updatedCampaign, solutions, profiles);
-             if (result.message === 'error') {
-              toast({
-                  title: 'Orchestrator Failed',
-                  description: result.error,
-                  variant: 'destructive',
-              });
-            } else {
-                 toast({
-                    title: 'Orchestrator Started!',
-                    description: `Campaign "${solution?.name}" is now being managed by the AI.`,
-                });
-            }
-        });
+        runOrchestratorForCampaign(updatedCampaign);
+    } else {
+        // Optional: clear the plan when paused
+        localStorage.removeItem(`orchestrationPlan_${campaign.id}`);
     }
   }
 

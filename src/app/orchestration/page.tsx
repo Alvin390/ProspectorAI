@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -29,38 +29,41 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Bot, Mail, Phone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { handleRunOrchestrator } from '@/app/actions';
 import type { Campaign } from '@/app/campaigns/page';
 import type { Solution } from '@/app/solutions/data';
-import type { Profile } from '@/app/leads/data';
 import type { OutreachOrchestratorOutput } from '@/ai/flows/outreach-orchestrator.schema';
 
 export default function OrchestrationPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [solutions, setSolutions] = useState<Solution[]>([]);
-  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>('');
-  const [isOrchestratorPending, startOrchestratorTransition] = useTransition();
   const { toast } = useToast();
   const [orchestrationPlan, setOrchestrationPlan] = useState<OutreachOrchestratorOutput | null>(null);
 
   useEffect(() => {
-    // This effect runs on the client, so it's safe to use localStorage
     const savedCampaigns = localStorage.getItem('campaigns');
     const savedSolutions = localStorage.getItem('solutions');
-    const savedProfiles = localStorage.getItem('profiles');
     
     const loadedCampaigns = savedCampaigns ? JSON.parse(savedCampaigns) : [];
     setCampaigns(loadedCampaigns);
     setSolutions(savedSolutions ? JSON.parse(savedSolutions) : []);
-    setProfiles(savedProfiles ? JSON.parse(savedProfiles) : []);
 
     const activeCampaigns = loadedCampaigns.filter((c: Campaign) => c.status === 'Active');
     if (activeCampaigns.length > 0 && !selectedCampaignId) {
-        setSelectedCampaignId(activeCampaigns[0].id);
+        const firstActiveId = activeCampaigns[0].id;
+        setSelectedCampaignId(firstActiveId);
+        showPlanForCampaign(firstActiveId);
     }
-
   }, []);
+  
+  useEffect(() => {
+      if (selectedCampaignId) {
+          showPlanForCampaign(selectedCampaignId);
+      } else {
+          setOrchestrationPlan(null);
+      }
+  }, [selectedCampaignId]);
+
 
   const activeCampaigns = campaigns.filter(c => c.status === 'Active');
 
@@ -71,36 +74,26 @@ export default function OrchestrationPage() {
     return solution ? solution.name : 'Unnamed Campaign';
   }
 
+  const showPlanForCampaign = (campaignId: string) => {
+    const storedPlan = localStorage.getItem(`orchestrationPlan_${campaignId}`);
+    if (storedPlan) {
+        setOrchestrationPlan(JSON.parse(storedPlan));
+    } else {
+        setOrchestrationPlan(null);
+    }
+  };
+  
   const handleShowPlan = () => {
     if (!selectedCampaignId) {
         toast({ title: "No campaign selected", description: "Please select an active campaign to view its plan.", variant: "destructive" });
         return;
     }
-
-    const campaign = campaigns.find(c => c.id === selectedCampaignId);
-    if (!campaign) {
-        toast({ title: "Campaign not found", description: "The selected campaign could not be found.", variant: "destructive" });
-        return;
-    }
-
-    startOrchestratorTransition(async () => {
-        const result = await handleRunOrchestrator(campaign, solutions, profiles);
-        if (result.message === 'error' || !result.data) {
-             toast({
-                title: 'Orchestrator Failed',
-                description: result.error,
-                variant: 'destructive',
-            });
-            setOrchestrationPlan(null);
-        } else {
-            setOrchestrationPlan(result.data);
-            toast({
-                title: 'Orchestration Plan Refreshed!',
-                description: `Displaying the latest AI outreach plan for "${getCampaignName(campaign.id)}".`,
-            });
-        }
+    showPlanForCampaign(selectedCampaignId);
+     toast({
+        title: 'Plan Refreshed',
+        description: `Displaying the latest AI outreach plan for "${getCampaignName(selectedCampaignId)}".`,
     });
-  };
+  }
   
   const getActionIcon = (action: 'EMAIL' | 'CALL' | 'FOLLOW_UP' | 'DO_NOTHING') => {
     switch(action) {
@@ -108,6 +101,16 @@ export default function OrchestrationPage() {
         case 'CALL': return <Phone className="h-4 w-4 text-green-500" />;
         default: return null;
     }
+  }
+
+  const getLeadName = (leadId: string) => {
+      const parts = leadId.split('-');
+      return parts[0].split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  }
+
+  const getLeadCompany = (leadId: string) => {
+      const parts = leadId.split('-');
+      return parts[1] || 'Unknown Company';
   }
 
   return (
@@ -124,7 +127,7 @@ export default function OrchestrationPage() {
             <div className="flex items-center gap-2">
                 <Select value={selectedCampaignId} onValueChange={setSelectedCampaignId} disabled={activeCampaigns.length === 0}>
                     <SelectTrigger id="campaign-select" className="flex-1">
-                        <SelectValue placeholder="Select a campaign..." />
+                        <SelectValue placeholder="Select an active campaign..." />
                     </SelectTrigger>
                     <SelectContent>
                         {activeCampaigns.map(campaign => (
@@ -132,8 +135,8 @@ export default function OrchestrationPage() {
                         ))}
                     </SelectContent>
                 </Select>
-                <Button onClick={handleShowPlan} disabled={isOrchestratorPending || !selectedCampaignId}>
-                    {isOrchestratorPending ? 'Refreshing...' : 'Show/Refresh Plan'}
+                 <Button onClick={handleShowPlan} disabled={!selectedCampaignId}>
+                    Show/Refresh Plan
                 </Button>
             </div>
         </div>
@@ -142,7 +145,7 @@ export default function OrchestrationPage() {
              <div className="space-y-4">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Live Strategic Plan</CardTitle>
+                        <CardTitle>Live Strategic Plan: {getCampaignName(orchestrationPlan.campaignId)}</CardTitle>
                         <CardDescription>The AI has determined the following next steps for this campaign. This is a snapshot of the AI's current strategy.</CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -158,8 +161,8 @@ export default function OrchestrationPage() {
                           <TableBody>
                             {orchestrationPlan.outreachPlan.filter(step => step.action !== 'DO_NOTHING').map((step) => (
                               <TableRow key={step.leadId}>
-                                <TableCell className="font-medium">{step.leadId.split('-')[0].split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}</TableCell>
-                                <TableCell>{step.leadId.split('-')[1]}</TableCell>
+                                <TableCell className="font-medium">{getLeadName(step.leadId)}</TableCell>
+                                <TableCell>{getLeadCompany(step.leadId)}</TableCell>
                                 <TableCell>
                                     <div className="flex items-center gap-2">
                                        {getActionIcon(step.action)}
@@ -177,9 +180,9 @@ export default function OrchestrationPage() {
         ) : (
             <Alert>
                 <Bot className="h-4 w-4" />
-                <AlertTitle>No Plan Generated</AlertTitle>
+                <AlertTitle>No Plan to Display</AlertTitle>
                 <AlertDescription>
-                    Select an active campaign and click "Show/Refresh Plan" to see the AI's current strategic outreach plan. The AI is working in the background if a campaign is active; check the Calling and Email pages for activity logs.
+                    Select an active campaign to see its strategic plan. If a campaign is active but has no plan, it might still be generating one. You can click "Show/Refresh Plan" to check again.
                 </AlertDescription>
             </Alert>
         )}
