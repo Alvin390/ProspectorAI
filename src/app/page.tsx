@@ -41,7 +41,7 @@ const upcomingMeetings = [
 ];
 
 const mockCallLogs = (campaigns: Campaign[]) => {
-    if (campaigns.length === 0) return [];
+    if (!campaigns || campaigns.length === 0) return [];
     return [
         { leadIdentifier: 'contact@innovateinc.com' },
         { leadIdentifier: 'info@synergycorp.io' },
@@ -51,7 +51,7 @@ const mockCallLogs = (campaigns: Campaign[]) => {
 };
 
 const mockEmailLogs = (campaigns: Campaign[]) => {
-    if (campaigns.length === 0) return [];
+    if (!campaigns || campaigns.length === 0) return [];
     return [
         { leadIdentifier: 'contact@innovateinc.com' },
         { leadIdentifier: 'info@synergycorp.io' },
