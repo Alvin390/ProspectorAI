@@ -64,18 +64,22 @@ export function CampaignCreationForm({ onCampaignSubmit, editingCampaign, clearE
 
   useEffect(() => {
     if (editingCampaign) {
+      setIsEditing(true);
       setSelectedSolution(editingCampaign.solutionName);
       setSelectedLeadProfile(editingCampaign.leadProfile);
       setEmailScript(editingCampaign.emailScript);
       setCallScript(editingCampaign.callScript);
-      setGeneratedContent({ // To show the textareas
+      setGeneratedContent({
         emailScript: editingCampaign.emailScript,
         callScript: editingCampaign.callScript,
       });
-      setIsEditing(true);
+      // We don't want to trigger a new generation, so clear the action state
+      state.message = '';
+      state.data = null;
+      state.error = null;
     } else {
+      // Reset form when not editing or when editingCampaign is cleared
       setIsEditing(false);
-      // Reset form when not editing
       formRef.current?.reset();
       setGeneratedContent(null);
       setEmailScript('');
@@ -83,7 +87,7 @@ export function CampaignCreationForm({ onCampaignSubmit, editingCampaign, clearE
       setSelectedSolution('');
       setSelectedLeadProfile('');
     }
-  }, [editingCampaign]);
+  }, [editingCampaign, state]);
 
 
   useEffect(() => {
@@ -109,43 +113,7 @@ export function CampaignCreationForm({ onCampaignSubmit, editingCampaign, clearE
     });
   };
   
-  const handleSubmitCampaign = () => {
-    let campaignData;
-
-    if (isEditing && editingCampaign) {
-        campaignData = {
-            solutionName: editingCampaign.solutionName,
-            leadProfile: editingCampaign.leadProfile,
-            emailScript,
-            callScript
-        };
-    } else {
-        if (!selectedSolution || !selectedLeadProfile) {
-            // This case should ideally not be hit if generate button is used first.
-            // But as a safeguard:
-            toast({
-                title: 'Missing Information',
-                description: 'Please select a solution and lead profile and generate content first.',
-                variant: 'destructive'
-            });
-            return;
-        }
-        campaignData = {
-            solutionName: selectedSolution,
-            leadProfile: selectedLeadProfile,
-            emailScript,
-            callScript
-        };
-    }
-
-    onCampaignSubmit(campaignData);
-
-    toast({
-        title: isEditing ? "Campaign Updated!" : "Campaign Started!",
-        description: isEditing ? "Your campaign has been successfully updated." : "Your outreach campaign is now running.",
-    });
-
-    // Reset form state after submission
+  const resetFormState = () => {
     if (formRef.current) {
         formRef.current.reset();
     }
@@ -154,10 +122,36 @@ export function CampaignCreationForm({ onCampaignSubmit, editingCampaign, clearE
     setCallScript('');
     setSelectedSolution('');
     setSelectedLeadProfile('');
-    setIsEditing(false); // This will also call clearEditing via the page component
-    if(isEditing) {
-      clearEditing();
+    if (isEditing) {
+        clearEditing(); // This will trigger the useEffect to clean up state
     }
+  }
+
+  const handleSubmitCampaign = () => {
+    const campaignData = {
+        solutionName: selectedSolution,
+        leadProfile: selectedLeadProfile,
+        emailScript,
+        callScript
+    };
+
+    if (!campaignData.solutionName || !campaignData.leadProfile || !campaignData.emailScript || !campaignData.callScript) {
+        toast({
+            title: 'Missing Information',
+            description: 'Please ensure all fields are filled and content is generated.',
+            variant: 'destructive'
+        });
+        return;
+    }
+    
+    onCampaignSubmit(campaignData);
+
+    toast({
+        title: isEditing ? "Campaign Updated!" : "Campaign Started!",
+        description: isEditing ? "Your campaign has been successfully updated." : "Your outreach campaign is now running.",
+    });
+
+    resetFormState();
   }
 
   return (
@@ -259,11 +253,18 @@ export function CampaignCreationForm({ onCampaignSubmit, editingCampaign, clearE
             </Card>
           </div>
           <div className="flex justify-end gap-2">
-            {isEditing && <Button variant="outline" onClick={() => {
-              clearEditing();
-              // Also reset the form view
-              setGeneratedContent(null);
-            }}>Cancel</Button>}
+            {isEditing ? (
+              <Button variant="outline" onClick={resetFormState}>Cancel</Button>
+            ) : (
+                <Button variant="outline" onClick={() => {
+                    setGeneratedContent(null); 
+                    state.message = ''; 
+                    state.data = null; 
+                    state.error=null;
+                }}>
+                    Generate New
+                </Button>
+            )}
             <Button onClick={handleSubmitCampaign}>
               <Rocket className="mr-2 h-4 w-4" />
               {isEditing ? 'Update Campaign' : 'Start Campaign'}
