@@ -26,6 +26,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { initialSolutions } from '@/app/solutions/data';
 import type { GenerateCampaignContentOutput } from '@/ai/flows/generate-campaign-content';
+import type { Campaign } from './page';
 
 const initialState = {
   message: '',
@@ -33,34 +34,62 @@ const initialState = {
   error: null,
 };
 
-function SubmitButton() {
+function SubmitButton({ isEditing }: { isEditing: boolean }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending}>
+    <Button type="submit" disabled={pending} className="w-full md:w-auto">
       {pending ? 'Generating...' : 'Generate Campaign Content'}
     </Button>
   );
 }
 
 interface CampaignCreationFormProps {
-    onStartCampaign: (campaignData: {
+    onCampaignSubmit: (campaignData: {
         solutionName: string;
         leadProfile: string;
         emailScript: string;
         callScript: string;
     }) => void;
+    editingCampaign: Campaign | null;
+    clearEditing: () => void;
 }
 
-export function CampaignCreationForm({ onStartCampaign }: CampaignCreationFormProps) {
+export function CampaignCreationForm({ onCampaignSubmit, editingCampaign, clearEditing }: CampaignCreationFormProps) {
   const [state, formAction] = useActionState(handleGenerateCampaignContent, initialState);
   const { toast } = useToast();
   const [emailScript, setEmailScript] = useState('');
   const [callScript, setCallScript] = useState('');
   const [generatedContent, setGeneratedContent] = useState<GenerateCampaignContentOutput | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   const formRef = useRef<HTMLFormElement>(null);
-  const solutionRef = useRef<string>('');
-  const leadProfileRef = useRef<string>('');
+  const solutionRef = useRef<HTMLButtonElement>(null);
+  const leadProfileRef = useRef<HTMLButtonElement>(null);
+  
+  const [selectedSolution, setSelectedSolution] = useState<string>('');
+  const [selectedLeadProfile, setSelectedLeadProfile] = useState<string>('');
+
+  useEffect(() => {
+    if (editingCampaign) {
+      setSelectedSolution(editingCampaign.solutionName);
+      setSelectedLeadProfile(editingCampaign.leadProfile);
+      setEmailScript(editingCampaign.emailScript);
+      setCallScript(editingCampaign.callScript);
+      setGeneratedContent({ // To show the textareas
+        emailScript: editingCampaign.emailScript,
+        callScript: editingCampaign.callScript,
+      });
+      setIsEditing(true);
+    } else {
+      setIsEditing(false);
+      formRef.current?.reset();
+      setGeneratedContent(null);
+      setEmailScript('');
+      setCallScript('');
+      setSelectedSolution('');
+      setSelectedLeadProfile('');
+    }
+  }, [editingCampaign]);
 
 
   useEffect(() => {
@@ -68,11 +97,6 @@ export function CampaignCreationForm({ onStartCampaign }: CampaignCreationFormPr
       setEmailScript(state.data.emailScript);
       setCallScript(state.data.callScript);
       setGeneratedContent(state.data);
-    }
-    if (state.message === 'success' || state.message === 'error') {
-        const formData = new FormData(formRef.current!);
-        solutionRef.current = formData.get('solution') as string;
-        leadProfileRef.current = formData.get('leadProfile') as string;
     }
   }, [state]);
 
@@ -84,26 +108,22 @@ export function CampaignCreationForm({ onStartCampaign }: CampaignCreationFormPr
     });
   };
   
-  const handleStartCampaign = () => {
-    if (!solutionRef.current || !leadProfileRef.current) return;
+  const handleSubmitCampaign = () => {
+    if (!selectedSolution || !selectedLeadProfile) return;
 
-    onStartCampaign({
-        solutionName: solutionRef.current,
-        leadProfile: leadProfileRef.current,
+    onCampaignSubmit({
+        solutionName: selectedSolution,
+        leadProfile: selectedLeadProfile,
         emailScript,
         callScript
     });
 
     toast({
-        title: "Campaign Started!",
-        description: "Your outreach campaign is now running.",
+        title: isEditing ? "Campaign Updated!" : "Campaign Started!",
+        description: isEditing ? "Your campaign has been successfully updated." : "Your outreach campaign is now running.",
     });
 
-    // Reset form state
-    formRef.current?.reset();
-    setGeneratedContent(null);
-    setEmailScript('');
-    setCallScript('');
+    clearEditing();
   }
   
   const handleFormAction = (formData: FormData) => {
@@ -116,8 +136,8 @@ export function CampaignCreationForm({ onStartCampaign }: CampaignCreationFormPr
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
                 <Label htmlFor="solution">Solution</Label>
-                <Select name="solution" required>
-                    <SelectTrigger id="solution">
+                <Select name="solution" required value={selectedSolution} onValueChange={setSelectedSolution}>
+                    <SelectTrigger id="solution" ref={solutionRef}>
                         <SelectValue placeholder="Select a solution" />
                     </SelectTrigger>
                     <SelectContent>
@@ -129,8 +149,8 @@ export function CampaignCreationForm({ onStartCampaign }: CampaignCreationFormPr
             </div>
             <div className="space-y-2">
                 <Label htmlFor="lead-profile">Lead Profile</Label>
-                <Select name="leadProfile" required>
-                <SelectTrigger id="lead-profile">
+                <Select name="leadProfile" required value={selectedLeadProfile} onValueChange={setSelectedLeadProfile}>
+                <SelectTrigger id="lead-profile" ref={leadProfileRef}>
                     <SelectValue placeholder="Select a lead profile" />
                 </SelectTrigger>
                 <SelectContent>
@@ -147,7 +167,10 @@ export function CampaignCreationForm({ onStartCampaign }: CampaignCreationFormPr
                 </Select>
             </div>
         </div>
-        <SubmitButton />
+        <div className="flex flex-col md:flex-row gap-2">
+          <SubmitButton isEditing={isEditing} />
+          {isEditing && <Button variant="outline" onClick={clearEditing} className="w-full md:w-auto">Cancel Edit</Button>}
+        </div>
       </form>
 
       {state.error && (
@@ -207,9 +230,9 @@ export function CampaignCreationForm({ onStartCampaign }: CampaignCreationFormPr
             </Card>
           </div>
           <div className="flex justify-end">
-            <Button onClick={handleStartCampaign}>
+            <Button onClick={handleSubmitCampaign}>
               <Rocket className="mr-2 h-4 w-4" />
-              Start Campaign
+              {isEditing ? 'Update Campaign' : 'Start Campaign'}
             </Button>
           </div>
         </>

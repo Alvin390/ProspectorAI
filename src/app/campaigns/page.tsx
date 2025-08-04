@@ -55,18 +55,30 @@ const initialCampaigns: Campaign[] = [
 export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>(initialCampaigns);
   const [activeTab, setActiveTab] = useState('create');
+  const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
 
-  const handleStartCampaign = (
+  const handleCampaignSubmit = (
     campaignData: Omit<Campaign, 'id' | 'status'>
   ) => {
-    setCampaigns((prev) => [
-      ...prev,
-      {
-        ...campaignData,
-        id: `campaign-${Date.now()}`,
-        status: 'Active',
-      },
-    ]);
+    if (editingCampaign) {
+      // Update existing campaign
+      setCampaigns(campaigns.map(c => 
+        c.id === editingCampaign.id 
+          ? { ...editingCampaign, ...campaignData } 
+          : c
+      ));
+      setEditingCampaign(null);
+    } else {
+      // Add new campaign
+      setCampaigns((prev) => [
+        ...prev,
+        {
+          ...campaignData,
+          id: `campaign-${Date.now()}`,
+          status: 'Active',
+        },
+      ]);
+    }
     setActiveTab('tracker');
   };
 
@@ -76,25 +88,40 @@ export default function CampaignsPage() {
     ));
   }
 
+  const handleEditClick = (campaign: Campaign) => {
+    setEditingCampaign(campaign);
+    setActiveTab('create');
+  }
+
+  const clearEditing = () => {
+    setEditingCampaign(null);
+  }
+
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="grid gap-6">
       <div className="flex items-center">
         <TabsList>
-          <TabsTrigger value="create">Create Campaign</TabsTrigger>
+          <TabsTrigger value="create">{editingCampaign ? 'Edit Campaign' : 'Create Campaign'}</TabsTrigger>
           <TabsTrigger value="tracker">Campaign Tracker</TabsTrigger>
         </TabsList>
       </div>
       <TabsContent value="create">
         <Card>
           <CardHeader>
-            <CardTitle>AI Campaign Creator</CardTitle>
+            <CardTitle>{editingCampaign ? `Editing: ${editingCampaign.solutionName}` : 'AI Campaign Creator'}</CardTitle>
             <CardDescription>
-              Generate personalized, multi-channel outreach campaigns based on
-              your value proposition and a selected lead profile.
+              {editingCampaign 
+                ? 'Update the details of your campaign below.'
+                : 'Generate personalized, multi-channel outreach campaigns based on your value proposition and a selected lead profile.'
+              }
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <CampaignCreationForm onStartCampaign={handleStartCampaign} />
+            <CampaignCreationForm 
+              onCampaignSubmit={handleCampaignSubmit} 
+              editingCampaign={editingCampaign}
+              clearEditing={clearEditing}
+            />
           </CardContent>
         </Card>
       </TabsContent>
@@ -142,7 +169,7 @@ export default function CampaignsPage() {
                         onCheckedChange={() => toggleCampaignStatus(campaign.id)}
                         aria-label="Toggle campaign status"
                       />
-                       <Button variant="outline" size="sm">Edit</Button>
+                       <Button variant="outline" size="sm" onClick={() => handleEditClick(campaign)}>Edit</Button>
                     </TableCell>
                   </TableRow>
                 ))}
