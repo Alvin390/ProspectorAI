@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -79,11 +79,37 @@ const initialTemplates: Template[] = [
 ];
 
 export default function TemplatesPage() {
-  const [templates, setTemplates] = useState<Template[]>(initialTemplates);
+  const [templates, setTemplates] = useState<Template[]>([]);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
   const [currentTemplate, setCurrentTemplate] = useState({ name: '', subject: '', body: '' });
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Set initial state from default data first
+    setTemplates(initialTemplates);
+
+    // Then, try to load from localStorage on the client
+    const savedTemplates = localStorage.getItem('templates');
+    if (savedTemplates) {
+        try {
+            const parsed = JSON.parse(savedTemplates);
+            if(Array.isArray(parsed)) {
+                setTemplates(parsed);
+            }
+        } catch {
+             // Do nothing, use initial
+        }
+    }
+  }, []);
+
+  useEffect(() => {
+    // This effect runs only on the client, so it's safe to use localStorage
+    if (typeof window !== 'undefined') {
+        localStorage.setItem('templates', JSON.stringify(templates));
+    }
+  }, [templates]);
+
 
   const handleOpenSheet = (template: Template | null) => {
     if (template) {
@@ -101,6 +127,21 @@ export default function TemplatesPage() {
     toast({
         title: "Template Deleted",
         description: "The email template has been successfully deleted.",
+        variant: 'destructive',
+    })
+  }
+
+  const handleDuplicate = (template: Template) => {
+    const newTemplate: Template = {
+        ...template,
+        id: `template-${Date.now()}`,
+        name: `${template.name} (Copy)`,
+        lastUpdated: new Date().toISOString().split('T')[0],
+    };
+    setTemplates(prev => [newTemplate, ...prev]);
+    toast({
+        title: "Template Duplicated",
+        description: `A copy of "${template.name}" has been created.`,
     })
   }
 
@@ -192,7 +233,7 @@ export default function TemplatesPage() {
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
                       <DropdownMenuItem onClick={() => handleOpenSheet(template)}>Edit</DropdownMenuItem>
-                      <DropdownMenuItem>Duplicate</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDuplicate(template)}>Duplicate</DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleDelete(template.id)} className="text-red-500 focus:text-red-500">Delete</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
