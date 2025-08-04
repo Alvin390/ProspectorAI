@@ -48,13 +48,19 @@ export default function CampaignsPage() {
   useEffect(() => {
     // Load state from localStorage on the client
     const savedCampaigns = localStorage.getItem('campaigns');
-    setCampaigns(savedCampaigns ? JSON.parse(savedCampaigns) : []);
+    if (savedCampaigns) {
+        setCampaigns(JSON.parse(savedCampaigns));
+    }
 
     const savedSolutions = localStorage.getItem('solutions');
-    setSolutions(savedSolutions ? JSON.parse(savedSolutions) : []);
+    if (savedSolutions) {
+        setSolutions(JSON.parse(savedSolutions));
+    }
 
     const savedProfiles = localStorage.getItem('profiles');
-    setProfiles(savedProfiles ? JSON.parse(savedProfiles) : []);
+    if(savedProfiles) {
+        setProfiles(JSON.parse(savedProfiles));
+    }
   }, []);
 
   useEffect(() => {

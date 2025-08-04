@@ -37,7 +37,6 @@ export default function OrchestrationPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [solutions, setSolutions] = useState<Solution[]>([]);
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>('');
-  const { toast } = useToast();
   const [orchestrationPlan, setOrchestrationPlan] = useState<OutreachOrchestratorOutput | null>(null);
 
   useEffect(() => {
@@ -52,7 +51,6 @@ export default function OrchestrationPage() {
     if (activeCampaigns.length > 0 && !selectedCampaignId) {
         const firstActiveId = activeCampaigns[0].id;
         setSelectedCampaignId(firstActiveId);
-        showPlanForCampaign(firstActiveId);
     }
   }, []);
   
@@ -85,14 +83,9 @@ export default function OrchestrationPage() {
   
   const handleShowPlan = () => {
     if (!selectedCampaignId) {
-        toast({ title: "No campaign selected", description: "Please select an active campaign to view its plan.", variant: "destructive" });
         return;
     }
     showPlanForCampaign(selectedCampaignId);
-     toast({
-        title: 'Plan Displayed',
-        description: `Showing the latest AI outreach plan for "${getCampaignName(selectedCampaignId)}".`,
-    });
   }
   
   const getActionIcon = (action: 'EMAIL' | 'CALL' | 'FOLLOW_UP' | 'DO_NOTHING') => {
@@ -112,6 +105,15 @@ export default function OrchestrationPage() {
       const parts = leadId.split('-');
       return parts[1] || 'Unknown Company';
   }
+  
+  const handleCampaignSelectionChange = (campaignId: string) => {
+    setSelectedCampaignId(campaignId);
+    const campaign = campaigns.find(c => c.id === campaignId);
+    if(campaign?.status !== 'Active') {
+        setOrchestrationPlan(null);
+    }
+  }
+
 
   return (
     <Card>
@@ -125,13 +127,13 @@ export default function OrchestrationPage() {
         <div className="space-y-2">
             <Label htmlFor="campaign-select">Select an Active Campaign to View its Plan</Label>
             <div className="flex items-center gap-2">
-                <Select value={selectedCampaignId} onValueChange={setSelectedCampaignId} disabled={activeCampaigns.length === 0}>
+                <Select value={selectedCampaignId} onValueChange={handleCampaignSelectionChange}>
                     <SelectTrigger id="campaign-select" className="flex-1">
                         <SelectValue placeholder="Select an active campaign..." />
                     </SelectTrigger>
                     <SelectContent>
-                        {activeCampaigns.map(campaign => (
-                        <SelectItem key={campaign.id} value={campaign.id}>{getCampaignName(campaign.id)}</SelectItem>
+                        {campaigns.filter(c => c.status === 'Active').map(campaign => (
+                            <SelectItem key={campaign.id} value={campaign.id}>{getCampaignName(campaign.id)}</SelectItem>
                         ))}
                     </SelectContent>
                 </Select>
@@ -141,7 +143,7 @@ export default function OrchestrationPage() {
             </div>
         </div>
 
-        {orchestrationPlan ? (
+        {selectedCampaignId && orchestrationPlan ? (
              <div className="space-y-4">
                 <Card>
                     <CardHeader>
@@ -182,7 +184,10 @@ export default function OrchestrationPage() {
                 <Bot className="h-4 w-4" />
                 <AlertTitle>No Plan to Display</AlertTitle>
                 <AlertDescription>
-                    Select an active campaign to see its strategic plan. If a campaign is active but has no plan, it might still be generating one. You can click "Show Plan" to check again.
+                    {activeCampaigns.length > 0 ? 
+                        "Select an active campaign and click 'Show Plan' to see its strategy. If a plan doesn't appear, one may not have been generated yet." :
+                        "There are no active campaigns. Please activate a campaign on the Campaigns page to see its orchestration plan."
+                    }
                 </AlertDescription>
             </Alert>
         )}
