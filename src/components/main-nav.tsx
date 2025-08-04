@@ -9,6 +9,7 @@ import {
   Phone,
   Calendar,
   FileText,
+  Package,
 } from 'lucide-react';
 
 import {
@@ -19,6 +20,7 @@ import {
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/solutions', label: 'Solutions', icon: Package },
   { href: '/leads', label: 'Lead Profiling', icon: Users },
   { href: '/campaigns', label: 'Campaigns', icon: Mail },
   { href: '/calling', label: 'Calling', icon: Phone },
