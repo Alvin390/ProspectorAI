@@ -44,12 +44,7 @@ function SubmitButton() {
 }
 
 interface CampaignCreationFormProps {
-    onCampaignSubmit: (campaignData: {
-        solutionName: string;
-        leadProfile: string;
-        emailScript: string;
-        callScript: string;
-    }) => void;
+    onCampaignSubmit: (campaignData: Omit<Campaign, 'id' | 'status'>) => void;
     editingCampaign: Campaign | null;
     clearEditing: () => void;
 }
@@ -115,7 +110,6 @@ export function CampaignCreationForm({ onCampaignSubmit, editingCampaign, clearE
   };
   
   const handleSubmitCampaign = () => {
-    // This validation should only run when creating a new campaign
     if (!isEditing && (!selectedSolution || !selectedLeadProfile)) {
         toast({
             title: 'Missing Information',
@@ -137,25 +131,27 @@ export function CampaignCreationForm({ onCampaignSubmit, editingCampaign, clearE
         description: isEditing ? "Your campaign has been successfully updated." : "Your outreach campaign is now running.",
     });
 
+    // Reset form state after submission
     if (isEditing) {
       clearEditing();
-    } else {
-      formRef.current?.reset();
-      setGeneratedContent(null);
-      setEmailScript('');
-      setCallScript('');
-      setSelectedSolution('');
-      setSelectedLeadProfile('');
-    }
+    } 
+    formRef.current?.reset();
+    setGeneratedContent(null);
+    setEmailScript('');
+    setCallScript('');
+    setSelectedSolution('');
+    setSelectedLeadProfile('');
+    setIsEditing(false);
   }
 
   return (
     <div className="space-y-6">
       <form ref={formRef} action={formAction} className="space-y-4" onSubmit={(e) => {
           e.preventDefault();
-          // Prevent default form submission for AI generation part
+          const formData = new FormData(e.currentTarget);
+          // Only call the AI generation action if content hasn't been generated yet
           if (!generatedContent) {
-              formAction(new FormData(e.currentTarget));
+            formAction(formData);
           }
       }}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -254,7 +250,11 @@ export function CampaignCreationForm({ onCampaignSubmit, editingCampaign, clearE
             </Card>
           </div>
           <div className="flex justify-end gap-2">
-            {isEditing && <Button variant="outline" onClick={clearEditing}>Cancel</Button>}
+            {isEditing && <Button variant="outline" onClick={() => {
+              clearEditing();
+              // Also reset the form view
+              setGeneratedContent(null);
+            }}>Cancel</Button>}
             <Button onClick={handleSubmitCampaign}>
               <Rocket className="mr-2 h-4 w-4" />
               {isEditing ? 'Update Campaign' : 'Start Campaign'}

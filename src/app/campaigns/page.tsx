@@ -94,14 +94,11 @@ export default function CampaignsPage() {
 
   const clearEditing = () => {
     setEditingCampaign(null);
-    // Don't switch tab here, let the user decide.
   }
 
   return (
     <Tabs value={activeTab} onValueChange={(value) => {
-        if (value === 'create' && editingCampaign && activeTab !== 'create') {
-            // This is to prevent clearing edit mode if user clicks around in create tab
-        } else if (value !== 'create') {
+        if (value !== 'create') {
             setEditingCampaign(null);
         }
         setActiveTab(value)
@@ -127,10 +124,7 @@ export default function CampaignsPage() {
             <CampaignCreationForm 
               onCampaignSubmit={handleCampaignSubmit} 
               editingCampaign={editingCampaign}
-              clearEditing={() => {
-                setEditingCampaign(null);
-                setActiveTab('create');
-              }}
+              clearEditing={clearEditing}
             />
           </CardContent>
         </Card>
