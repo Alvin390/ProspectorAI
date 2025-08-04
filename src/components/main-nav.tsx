@@ -29,6 +29,7 @@ const navItems = [
   { href: '/calling', label: 'Calling', icon: Phone },
   { href: '/email', label: 'Email', icon: Mail },
   { href: '/calendar', label: 'Calendar', icon: Calendar },
+  { href: '/templates', label: 'Templates', icon: FileText },
 ];
 
 export function MainNav() {
