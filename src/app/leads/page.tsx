@@ -164,7 +164,7 @@ export default function LeadProfilingPage() {
           <CardTitle>Past Profiles</CardTitle>
           <CardDescription>
             Review and manage your previously generated lead profiles.
-          </Description>
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
