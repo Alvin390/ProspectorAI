@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Card,
   CardContent,
@@ -39,41 +39,37 @@ export default function LeadProfilingPage() {
   const [solutions, setSolutions] = useState<Solution[]>([]);
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
   const { toast } = useToast();
+  const hasLoaded = useRef(false);
 
   useEffect(() => {
-    // Set initial state from default data first to avoid hydration issues
-    setProfiles(initialProfiles);
-    setSolutions(initialSolutions);
-    
-    // Then, try to load from localStorage on the client
-    const savedProfiles = localStorage.getItem('profiles');
-    if (savedProfiles) {
-        try {
-            const parsed = JSON.parse(savedProfiles);
-            if(Array.isArray(parsed)) {
-                setProfiles(parsed);
+    if (!hasLoaded.current) {
+        const savedProfiles = localStorage.getItem('profiles');
+        if (savedProfiles) {
+            try {
+                setProfiles(JSON.parse(savedProfiles));
+            } catch {
+                setProfiles(initialProfiles);
             }
-        } catch {
-            // Do nothing, use initial
+        } else {
+          setProfiles(initialProfiles);
         }
-    }
 
-    const savedSolutions = localStorage.getItem('solutions');
-    if (savedSolutions) {
-        try {
-            const parsed = JSON.parse(savedSolutions);
-            if(Array.isArray(parsed)) {
-                setSolutions(parsed);
+        const savedSolutions = localStorage.getItem('solutions');
+        if (savedSolutions) {
+            try {
+                setSolutions(JSON.parse(savedSolutions));
+            } catch {
+                setSolutions(initialSolutions);
             }
-        } catch {
-            // Do nothing, use initial
+        } else {
+            setSolutions(initialSolutions);
         }
+        hasLoaded.current = true;
     }
   }, []);
 
   useEffect(() => {
-    // This effect runs only on the client, so it's safe to use localStorage
-    if (typeof window !== 'undefined') {
+    if (hasLoaded.current) {
         localStorage.setItem('profiles', JSON.stringify(profiles));
     }
   }, [profiles]);

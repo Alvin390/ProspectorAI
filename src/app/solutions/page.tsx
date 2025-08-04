@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Card,
   CardContent,
@@ -45,30 +45,30 @@ export default function SolutionsPage() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [editingSolution, setEditingSolution] = useState<Solution | null>(null);
   const [currentSolution, setCurrentSolution] = useState<Omit<Solution, 'id'>>({ name: '', description: '' });
+  const hasLoaded = useRef(false);
 
   const { toast } = useToast();
 
    useEffect(() => {
-    // Set initial state from default data first
-    setSolutions(initialSolutions);
-    
-    // Then, try to load from localStorage on the client
-    const savedSolutions = localStorage.getItem('solutions');
-    if (savedSolutions) {
-      try {
-        const parsed = JSON.parse(savedSolutions);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-            setSolutions(parsed);
+    if (!hasLoaded.current) {
+      const savedSolutions = localStorage.getItem('solutions');
+      if (savedSolutions) {
+        try {
+          const parsed = JSON.parse(savedSolutions);
+          setSolutions(parsed);
+        } catch {
+          setSolutions(initialSolutions);
         }
-      } catch {
-        // Do nothing, use initial
+      } else {
+        setSolutions(initialSolutions);
       }
+      hasLoaded.current = true;
     }
   }, []);
 
 
   useEffect(() => {
-     if (typeof window !== 'undefined') {
+     if (hasLoaded.current) {
         localStorage.setItem('solutions', JSON.stringify(solutions));
     }
   }, [solutions]);
