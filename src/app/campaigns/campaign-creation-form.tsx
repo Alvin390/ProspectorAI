@@ -115,7 +115,8 @@ export function CampaignCreationForm({ onCampaignSubmit, editingCampaign, clearE
   };
   
   const handleSubmitCampaign = () => {
-    if (!selectedSolution || !selectedLeadProfile) {
+    // This validation should only run when creating a new campaign
+    if (!isEditing && (!selectedSolution || !selectedLeadProfile)) {
         toast({
             title: 'Missing Information',
             description: 'Please select a solution and a lead profile.',
@@ -151,12 +152,10 @@ export function CampaignCreationForm({ onCampaignSubmit, editingCampaign, clearE
   return (
     <div className="space-y-6">
       <form ref={formRef} action={formAction} className="space-y-4" onSubmit={(e) => {
+          e.preventDefault();
           // Prevent default form submission for AI generation part
           if (!generatedContent) {
               formAction(new FormData(e.currentTarget));
-              e.preventDefault();
-          } else {
-              e.preventDefault();
           }
       }}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
