@@ -110,31 +110,44 @@ export function CampaignCreationForm({ onCampaignSubmit, editingCampaign, clearE
   };
   
   const handleSubmitCampaign = () => {
-    if (!isEditing && (!selectedSolution || !selectedLeadProfile)) {
-        toast({
-            title: 'Missing Information',
-            description: 'Please select a solution and a lead profile.',
-            variant: 'destructive'
-        });
-        return;
+    let campaignData;
+
+    if (isEditing && editingCampaign) {
+        campaignData = {
+            solutionName: editingCampaign.solutionName,
+            leadProfile: editingCampaign.leadProfile,
+            emailScript,
+            callScript
+        };
+    } else {
+        if (!selectedSolution || !selectedLeadProfile) {
+            toast({
+                title: 'Missing Information',
+                description: 'Please select a solution and a lead profile.',
+                variant: 'destructive'
+            });
+            return;
+        }
+        campaignData = {
+            solutionName: selectedSolution,
+            leadProfile: selectedLeadProfile,
+            emailScript,
+            callScript
+        };
     }
 
-    onCampaignSubmit({
-        solutionName: selectedSolution,
-        leadProfile: selectedLeadProfile,
-        emailScript,
-        callScript
-    });
+    onCampaignSubmit(campaignData);
 
     toast({
         title: isEditing ? "Campaign Updated!" : "Campaign Started!",
         description: isEditing ? "Your campaign has been successfully updated." : "Your outreach campaign is now running.",
     });
 
-    // Reset form state after submission
     if (isEditing) {
-      clearEditing();
-    } 
+        clearEditing();
+    }
+    
+    // Reset form state after submission
     formRef.current?.reset();
     setGeneratedContent(null);
     setEmailScript('');
