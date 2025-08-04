@@ -1,200 +1,172 @@
 
 'use client';
 
-import { useState, useEffect, useActionState, useRef } from 'react';
-import { useFormStatus } from 'react-dom';
+import { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Phone, Send, User, Bot } from 'lucide-react';
+import { Phone, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 import type { Campaign } from '@/app/campaigns/page';
-import { handleConversationalCall } from '@/app/actions';
-import { useToast } from '@/hooks/use-toast';
-import { initialSolutions } from '@/app/solutions/data';
 
-interface ConversationTurn {
-  role: 'user' | 'model';
-  text: string;
+interface CallLog {
+  id: string;
+  campaignId: string;
+  campaignName: string;
+  leadIdentifier: string;
+  status: 'Meeting Booked' | 'Not Interested' | 'Follow-up Required';
+  summary: string;
+  timestamp: string;
 }
 
-const initialCallState = {
-  message: '',
-  data: null,
-  error: null,
-};
+const generateMockCallLogs = (campaigns: Campaign[]): CallLog[] => {
+    if (campaigns.length === 0) return [];
+    const activeCampaigns = campaigns.filter(c => c.status === 'Active');
+    if (activeCampaigns.length === 0) return [];
 
-function SubmitButton({ disabled }: { disabled?: boolean }) {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={disabled || pending} size="icon">
-      {pending ? (
-        <Bot className="animate-spin h-5 w-5" />
-      ) : (
-        <Send className="h-5 w-5" />
-      )}
-    </Button>
-  );
+    const logs: CallLog[] = [
+        {
+            id: 'call-1',
+            campaignId: activeCampaigns[0].id,
+            campaignName: activeCampaigns[0].solutionName,
+            leadIdentifier: 'contact@innovateinc.com',
+            status: 'Meeting Booked',
+            summary: 'Lead was very interested in the AI discovery tool. Scheduled a demo for next Tuesday.',
+            timestamp: '3 hours ago'
+        },
+        {
+            id: 'call-2',
+            campaignId: activeCampaigns[0].id,
+            campaignName: activeCampaigns[0].solutionName,
+            leadIdentifier: 'info@synergycorp.io',
+            status: 'Not Interested',
+            summary: 'Reason: Already using a competitor solution and satisfied with it.',
+            timestamp: '5 hours ago'
+        }
+    ];
+
+    if (activeCampaigns.length > 1) {
+        logs.push({
+            id: 'call-3',
+            campaignId: activeCampaigns[1].id,
+            campaignName: activeCampaigns[1].solutionName,
+            leadIdentifier: 'pm@solutions.llc',
+            status: 'Follow-up Required',
+            summary: 'Lead was busy, asked to call back next week.',
+            timestamp: 'Yesterday'
+        });
+    }
+     logs.push({
+        id: 'call-4',
+        campaignId: activeCampaigns[0].id,
+        campaignName: activeCampaigns[0].solutionName,
+        leadIdentifier: 'jane.doe@techstart.co',
+        status: 'Not Interested',
+        summary: 'Reason: Budget constraints for new software this quarter.',
+        timestamp: 'Yesterday'
+    });
+
+
+    return logs;
 }
+
 
 export default function CallingPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [activeCall, setActiveCall] = useState<Campaign | null>(null);
-  const [conversation, setConversation] = useState<ConversationTurn[]>([]);
-  const [userResponse, setUserResponse] = useState('');
-  const [callState, formAction, isPending] = useActionState(handleConversationalCall, initialCallState);
-  const { toast } = useToast();
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [callLogs, setCallLogs] = useState<CallLog[]>([]);
 
   useEffect(() => {
     const campaignsFromStorage = localStorage.getItem('campaigns');
     if (campaignsFromStorage) {
-      setCampaigns(JSON.parse(campaignsFromStorage));
+        const parsedCampaigns = JSON.parse(campaignsFromStorage);
+        setCampaigns(parsedCampaigns);
+        setCallLogs(generateMockCallLogs(parsedCampaigns));
     }
   }, []);
+
+  const getStatusIcon = (status: CallLog['status']) => {
+    switch (status) {
+      case 'Meeting Booked':
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'Not Interested':
+        return <AlertCircle className="h-4 w-4 text-red-500" />;
+      case 'Follow-up Required':
+        return <Clock className="h-4 w-4 text-yellow-500" />;
+    }
+  }
   
-  useEffect(() => {
-    if (callState.message === 'error') {
-      toast({
-        title: 'Error during call',
-        description: callState.error,
-        variant: 'destructive',
-      });
+  const getStatusBadgeVariant = (status: CallLog['status']) => {
+    switch (status) {
+      case 'Meeting Booked':
+        return 'default';
+      case 'Not Interested':
+        return 'destructive';
+      case 'Follow-up Required':
+        return 'secondary';
     }
-    if (callState.data) {
-      setConversation(prev => [...prev, { role: 'model', text: callState.data.responseText }]);
-      if (audioRef.current && callState.data.audioResponse) {
-        audioRef.current.src = callState.data.audioResponse;
-        audioRef.current.play();
-      }
-    }
-  }, [callState, toast]);
+  }
 
-  useEffect(() => {
-    if (scrollAreaRef.current) {
-        scrollAreaRef.current.scrollTo({
-            top: scrollAreaRef.current.scrollHeight,
-            behavior: 'smooth'
-        });
-    }
-  }, [conversation])
-
-  const handleStartCall = (campaign: Campaign) => {
-    setActiveCall(campaign);
-    setConversation([{ role: 'model', text: "Hello! I'm calling from ProspectorAI..." }]); // Initial greeting
-  };
-
-  const handleEndCall = () => {
-    setActiveCall(null);
-    setConversation([]);
-  };
-
-  const submitResponse = (formData: FormData) => {
-     if (!userResponse.trim()) return;
-
-     setConversation(prev => [...prev, { role: 'user', text: userResponse }]);
-     
-     const solution = initialSolutions.find(s => s.name === activeCall!.solutionName);
-
-     formData.set('solutionDescription', solution?.description || '');
-     formData.set('leadProfile', activeCall!.leadProfile);
-     formData.set('callScript', activeCall!.callScript);
-     formData.set('conversationHistory', JSON.stringify(conversation));
-     formData.set('userResponse', userResponse);
-
-     formAction(formData);
-     setUserResponse('');
-  };
-
-  const activeCampaigns = campaigns.filter(c => c.status === 'Active');
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Outbound Calling Automation</CardTitle>
+        <CardTitle>Outbound Calling Log</CardTitle>
         <CardDescription>
-          {activeCall 
-            ? `On a call for: ${activeCall.solutionName}`
-            : 'Select an active campaign to start a simulated call.'
-          }
+          An automated log of all outreach calls made by the AI.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {activeCall ? (
-          <div className="flex flex-col h-[60vh]">
-            <ScrollArea className="flex-grow p-4 border rounded-lg" ref={scrollAreaRef}>
-              <div className="space-y-4">
-                {conversation.map((turn, index) => (
-                  <div key={index} className={`flex items-start gap-3 ${turn.role === 'user' ? 'justify-end' : ''}`}>
-                    {turn.role === 'model' && (
-                      <span className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground">
-                        <Bot className="h-5 w-5" />
-                      </span>
-                    )}
-                    <div className={`rounded-lg px-4 py-2 max-w-[75%] ${turn.role === 'model' ? 'bg-muted' : 'bg-primary text-primary-foreground'}`}>
-                      <p className="text-sm">{turn.text}</p>
-                    </div>
-                     {turn.role === 'user' && (
-                      <span className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-muted text-muted-foreground">
-                        <User className="h-5 w-5" />
-                      </span>
-                    )}
-                  </div>
+       {callLogs.length > 0 ? (
+           <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Campaign</TableHead>
+                  <TableHead>Lead</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Summary</TableHead>
+                  <TableHead>Time</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {callLogs.map((log) => (
+                  <TableRow key={log.id}>
+                    <TableCell className="font-medium">{log.campaignName}</TableCell>
+                    <TableCell>{log.leadIdentifier}</TableCell>
+                    <TableCell>
+                        <Badge variant={getStatusBadgeVariant(log.status)} className='gap-1 pl-2 pr-3'>
+                            {getStatusIcon(log.status)}
+                            {log.status}
+                        </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{log.summary}</TableCell>
+                    <TableCell className="text-muted-foreground">{log.timestamp}</TableCell>
+                  </TableRow>
                 ))}
-              </div>
-            </ScrollArea>
-             <audio ref={audioRef} className="w-full mt-4" controls />
-             <form action={submitResponse} className="mt-4 flex items-center gap-2">
-                <Input
-                    name="userResponse"
-                    value={userResponse}
-                    onChange={(e) => setUserResponse(e.target.value)}
-                    placeholder="Type the lead's response here..."
-                    disabled={isPending}
-                />
-                <SubmitButton disabled={!userResponse.trim()} />
-            </form>
-          </div>
-        ) : (
-          <div>
-            {activeCampaigns.length > 0 ? (
-                <div className="space-y-2">
-                    {activeCampaigns.map(campaign => (
-                        <div key={campaign.id} className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                            <div>
-                                <h3 className="font-semibold">{campaign.solutionName}</h3>
-                                <p className="text-sm text-muted-foreground">{campaign.leadProfile}</p>
-                            </div>
-                            <Button onClick={() => handleStartCall(campaign)}><Phone className="mr-2 h-4 w-4"/> Start Call</Button>
-                        </div>
-                    ))}
-                </div>
-            ) : (
-                 <Alert>
-                    <Phone className="h-4 w-4" />
-                    <AlertTitle>No Active Campaigns</AlertTitle>
-                    <AlertDescription>
-                        You don't have any active campaigns. Go to the Campaigns page to start one.
-                    </AlertDescription>
-                </Alert>
-            )}
-          </div>
-        )}
+              </TableBody>
+            </Table>
+       ) : (
+            <Alert>
+                <Phone className="h-4 w-4" />
+                <AlertTitle>No Calling Activity</AlertTitle>
+                <AlertDescription>
+                   There are no active campaigns, so no calls have been made. Start a campaign to begin automated outreach.
+                </AlertDescription>
+            </Alert>
+       )}
       </CardContent>
-      {activeCall && (
-        <CardFooter className="flex justify-end">
-          <Button variant="destructive" onClick={handleEndCall}>End Call</Button>
-        </CardFooter>
-      )}
     </Card>
   );
 }
