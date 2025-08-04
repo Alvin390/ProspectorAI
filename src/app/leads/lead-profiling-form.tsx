@@ -40,14 +40,14 @@ interface LeadProfilingFormProps {
 
 export function LeadProfilingForm({ solutions }: LeadProfilingFormProps) {
   const [state, formAction] = useActionState(handleGenerateLeadProfile, initialState);
-  const [selectedSolution, setSelectedSolution] = useState('');
+  const [description, setDescription] = useState('');
 
   const handleSolutionChange = (value: string) => {
     const solution = solutions.find((s) => s.name === value);
     if (solution) {
-      setSelectedSolution(solution.description);
+      setDescription(solution.description);
     } else {
-      setSelectedSolution('');
+      setDescription('');
     }
   };
 
@@ -83,8 +83,8 @@ export function LeadProfilingForm({ solutions }: LeadProfilingFormProps) {
           placeholder="e.g., B2B SaaS companies in the fintech sector with annual revenue over $10M and using HubSpot..."
           rows={4}
           required
-          value={selectedSolution}
-          onChange={(e) => setSelectedSolution(e.target.value)}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
         />
         <SubmitButton />
       </form>
