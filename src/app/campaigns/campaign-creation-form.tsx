@@ -65,9 +65,6 @@ export function CampaignCreationForm({ solutions, profiles, onCampaignSubmit, ed
   const [selectedSolution, setSelectedSolution] = useState<string>('');
   const [selectedLeadProfile, setSelectedLeadProfile] = useState<string>('');
   
-  // This needs to be passed in from the page now
-  // const [solutions, setSolutions] = useState<Solution[]>([]);
-
   useEffect(() => {
     if (editingCampaign) {
       setIsEditing(true);
@@ -258,10 +255,11 @@ export function CampaignCreationForm({ solutions, profiles, onCampaignSubmit, ed
               <Button variant="outline" onClick={resetFormState}>Cancel</Button>
             ) : (
                 <Button variant="outline" onClick={() => {
-                    setGeneratedContent(null); 
-                    state.message = ''; 
-                    state.data = null; 
-                    state.error=null;
+                    setGeneratedContent(null);
+                    // Also clear formAction state to allow re-generation
+                    state.message = '';
+                    state.data = null;
+                    state.error = null;
                 }}>
                     Generate New
                 </Button>
