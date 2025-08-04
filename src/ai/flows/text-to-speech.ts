@@ -3,22 +3,17 @@
  * @fileOverview A text-to-speech AI agent.
  *
  * - textToSpeech - A function that converts text to speech.
- * - TextToSpeechInput - The input type for the textToSpeech function.
- * - TextToSpeechOutput - The return type for the textToSpeech function.
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
 import wav from 'wav';
 import { googleAI } from '@genkit-ai/googleai';
-
-export const TextToSpeechInputSchema = z.string().describe('The text to convert to speech.');
-export type TextToSpeechInput = z.infer<typeof TextToSpeechInputSchema>;
-
-export const TextToSpeechOutputSchema = z.object({
-    media: z.string().describe("The generated audio as a data URI in WAV format. Expected format: 'data:audio/wav;base64,<encoded_data>'."),
-});
-export type TextToSpeechOutput = z.infer<typeof TextToSpeechOutputSchema>;
+import {
+    TextToSpeechInputSchema,
+    type TextToSpeechInput,
+    TextToSpeechOutputSchema,
+    type TextToSpeechOutput
+} from './text-to-speech.schema';
 
 
 export async function textToSpeech(input: TextToSpeechInput): Promise<TextToSpeechOutput> {

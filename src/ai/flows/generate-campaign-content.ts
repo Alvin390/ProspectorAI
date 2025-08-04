@@ -1,30 +1,17 @@
+'use server';
+
 // The AI campaign generator flow.
 //
 // - generateCampaignContent - A function that generates personalized email and call scripts for a multi-channel outreach campaign.
-// - GenerateCampaignContentInput - The input type for the generateCampaignContent function.
-// - GenerateCampaignContentOutput - The return type for the generateCampaignContent function.
-'use server';
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {
+    GenerateCampaignContentInputSchema,
+    type GenerateCampaignContentInput,
+    GenerateCampaignContentOutputSchema,
+    type GenerateCampaignContentOutput
+} from './generate-campaign-content.schema';
 
-const GenerateCampaignContentInputSchema = z.object({
-  solutionDescription: z
-    .string()
-    .describe('A detailed description of the software solution or product being offered.'),
-  leadProfile: z.string().describe('The generated lead profile.'),
-});
-export type GenerateCampaignContentInput = z.infer<
-  typeof GenerateCampaignContentInputSchema
->;
-
-const GenerateCampaignContentOutputSchema = z.object({
-  emailScript: z.string().describe('The personalized email script.'),
-  callScript: z.string().describe('The personalized call script.'),
-});
-export type GenerateCampaignContentOutput = z.infer<
-  typeof GenerateCampaignContentOutputSchema
->;
 
 export async function generateCampaignContent(
   input: GenerateCampaignContentInput

@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { initialSolutions } from '@/app/solutions/data';
-import type { GenerateCampaignContentOutput } from '@/ai/flows/generate-campaign-content';
+import type { GenerateCampaignContentOutput } from '@/ai/flows/generate-campaign-content.schema';
 import type { Campaign } from './page';
 
 const initialState = {
@@ -121,9 +121,11 @@ export function CampaignCreationForm({ onCampaignSubmit, editingCampaign, clearE
         };
     } else {
         if (!selectedSolution || !selectedLeadProfile) {
+            // This case should ideally not be hit if generate button is used first.
+            // But as a safeguard:
             toast({
                 title: 'Missing Information',
-                description: 'Please select a solution and a lead profile.',
+                description: 'Please select a solution and lead profile and generate content first.',
                 variant: 'destructive'
             });
             return;
@@ -143,23 +145,24 @@ export function CampaignCreationForm({ onCampaignSubmit, editingCampaign, clearE
         description: isEditing ? "Your campaign has been successfully updated." : "Your outreach campaign is now running.",
     });
 
-    if (isEditing) {
-        clearEditing();
-    }
-    
     // Reset form state after submission
-    formRef.current?.reset();
+    if (formRef.current) {
+        formRef.current.reset();
+    }
     setGeneratedContent(null);
     setEmailScript('');
     setCallScript('');
     setSelectedSolution('');
     setSelectedLeadProfile('');
-    setIsEditing(false);
+    setIsEditing(false); // This will also call clearEditing via the page component
+    if(isEditing) {
+      clearEditing();
+    }
   }
 
   return (
     <div className="space-y-6">
-      <form ref={formRef} action={formAction} className="space-y-4">
+      <form action={formAction} ref={formRef} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
                 <Label htmlFor="solution">Solution</Label>
@@ -195,7 +198,7 @@ export function CampaignCreationForm({ onCampaignSubmit, editingCampaign, clearE
             </div>
         </div>
         <div className="flex flex-col md:flex-row gap-2">
-           {!isEditing && <SubmitButton disabled={!!generatedContent} />}
+           {!isEditing && <SubmitButton disabled={!!generatedContent || !selectedSolution || !selectedLeadProfile} />}
         </div>
       </form>
 

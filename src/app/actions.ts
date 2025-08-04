@@ -2,21 +2,20 @@
 
 import {
   generateLeadProfile,
-  type GenerateLeadProfileOutput,
 } from '@/ai/flows/generate-lead-profile';
+import type { GenerateLeadProfileOutput } from '@/ai/flows/generate-lead-profile.schema';
 import {
   generateCampaignContent,
-  type GenerateCampaignContentOutput,
 } from '@/ai/flows/generate-campaign-content';
+import type { GenerateCampaignContentOutput } from '@/ai/flows/generate-campaign-content.schema';
 import { 
   textToSpeech,
-  type TextToSpeechOutput,
 } from '@/ai/flows/text-to-speech';
+import type { TextToSpeechOutput } from '@/ai/flows/text-to-speech.schema';
 import {
     conversationalCall,
-    type ConversationalCallInput,
-    type ConversationalCallOutput
 } from '@/ai/flows/conversational-call';
+import type { ConversationalCallInput, ConversationalCallOutput } from '@/ai/flows/conversational-call.schema';
 import { z } from 'zod';
 import { initialSolutions } from './solutions/data';
 

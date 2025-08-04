@@ -4,25 +4,15 @@
  * @fileOverview A lead profile generator AI agent.
  *
  * - generateLeadProfile - A function that handles the lead profile generation process.
- * - GenerateLeadProfileInput - The input type for the generateLeadProfile function.
- * - GenerateLeadProfileOutput - The return type for the generateLeadProfile function.
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
-
-const GenerateLeadProfileInputSchema = z.string().describe('The description of the ideal customer.');
-export type GenerateLeadProfileInput = z.infer<typeof GenerateLeadProfileInputSchema>;
-
-const GenerateLeadProfileOutputSchema = z.object({
-  attributes: z
-    .string()
-    .describe('Key attributes of the ideal customer, including demographics, interests, and professional background.'),
-  onlinePresence: z
-    .string()
-    .describe('Information about the ideal customer online presence, including social media profiles, website, and online communities.'),
-});
-export type GenerateLeadProfileOutput = z.infer<typeof GenerateLeadProfileOutputSchema>;
+import {
+    GenerateLeadProfileInputSchema,
+    type GenerateLeadProfileInput,
+    GenerateLeadProfileOutputSchema,
+    type GenerateLeadProfileOutput
+} from './generate-lead-profile.schema';
 
 export async function generateLeadProfile(input: GenerateLeadProfileInput): Promise<GenerateLeadProfileOutput> {
   return generateLeadProfileFlow(input);
