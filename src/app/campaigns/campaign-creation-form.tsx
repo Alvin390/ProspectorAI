@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useActionState, useState, useEffect } from 'react';
+import { useActionState, useState, useEffect, useRef } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -24,8 +24,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Switch } from '@/components/ui/switch';
 import { initialSolutions } from '@/app/solutions/data';
+import type { GenerateCampaignContentOutput } from '@/ai/flows/generate-campaign-content';
 
 const initialState = {
   message: '',
@@ -42,18 +42,39 @@ function SubmitButton() {
   );
 }
 
-export function CampaignCreationForm() {
+interface CampaignCreationFormProps {
+    onStartCampaign: (campaignData: {
+        solutionName: string;
+        leadProfile: string;
+        emailScript: string;
+        callScript: string;
+    }) => void;
+}
+
+export function CampaignCreationForm({ onStartCampaign }: CampaignCreationFormProps) {
   const [state, formAction] = useActionState(handleGenerateCampaignContent, initialState);
   const { toast } = useToast();
   const [emailScript, setEmailScript] = useState('');
   const [callScript, setCallScript] = useState('');
+  const [generatedContent, setGeneratedContent] = useState<GenerateCampaignContentOutput | null>(null);
+
+  const formRef = useRef<HTMLFormElement>(null);
+  const solutionRef = useRef<string>('');
+  const leadProfileRef = useRef<string>('');
+
 
   useEffect(() => {
     if (state.data) {
       setEmailScript(state.data.emailScript);
       setCallScript(state.data.callScript);
+      setGeneratedContent(state.data);
     }
-  }, [state.data]);
+    if (state.message === 'success' || state.message === 'error') {
+        const formData = new FormData(formRef.current!);
+        solutionRef.current = formData.get('solution') as string;
+        leadProfileRef.current = formData.get('leadProfile') as string;
+    }
+  }, [state]);
 
   const copyToClipboard = (text: string, type: string) => {
     navigator.clipboard.writeText(text);
@@ -64,15 +85,34 @@ export function CampaignCreationForm() {
   };
   
   const handleStartCampaign = () => {
+    if (!solutionRef.current || !leadProfileRef.current) return;
+
+    onStartCampaign({
+        solutionName: solutionRef.current,
+        leadProfile: leadProfileRef.current,
+        emailScript,
+        callScript
+    });
+
     toast({
         title: "Campaign Started!",
         description: "Your outreach campaign is now running.",
-    })
+    });
+
+    // Reset form state
+    formRef.current?.reset();
+    setGeneratedContent(null);
+    setEmailScript('');
+    setCallScript('');
+  }
+  
+  const handleFormAction = (formData: FormData) => {
+      formAction(formData);
   }
 
   return (
     <div className="space-y-6">
-      <form action={formAction} className="space-y-4">
+      <form ref={formRef} action={handleFormAction} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
                 <Label htmlFor="solution">Solution</Label>
@@ -94,22 +134,18 @@ export function CampaignCreationForm() {
                     <SelectValue placeholder="Select a lead profile" />
                 </SelectTrigger>
                 <SelectContent>
-                    <SelectItem value="profile-1">
+                    <SelectItem value="Tech startups in Silicon Valley">
                     Tech startups in Silicon Valley
                     </SelectItem>
-                    <SelectItem value="profile-2">
+                    <SelectItem value="E-commerce businesses in Europe">
                     E-commerce businesses in Europe
                     </SelectItem>
-                    <SelectItem value="profile-3">
+                    <SelectItem value="Financial services companies in New York">
                     Financial services companies in New York
                     </SelectItem>
                 </SelectContent>
                 </Select>
             </div>
-        </div>
-        <div className="flex items-center space-x-2 pt-2">
-            <Switch id="continuous-campaign" name="continuous" />
-            <Label htmlFor="continuous-campaign">Continuous Campaign</Label>
         </div>
         <SubmitButton />
       </form>
@@ -122,7 +158,7 @@ export function CampaignCreationForm() {
         </Alert>
       )}
 
-      {state.data && (
+      {generatedContent && (
         <>
           <div className="grid gap-6 md:grid-cols-2">
             <Card>

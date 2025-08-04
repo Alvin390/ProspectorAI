@@ -1,3 +1,7 @@
+
+'use client';
+
+import { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -15,46 +19,69 @@ import {
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { CampaignCreationForm } from './campaign-creation-form';
+import type { GenerateCampaignContentOutput } from '@/ai/flows/generate-campaign-content';
 
-const attempts = [
-  {
-    campaign: 'Q4 Fintech Outreach',
-    status: 'In Progress',
-    channel: 'Email',
-    lastContacted: '2023-10-26',
-    nextAttempt: '2023-10-29',
-  },
-  {
-    campaign: 'EU E-commerce Initiative',
-    status: 'Paused',
-    channel: 'Call',
-    lastContacted: '2023-10-20',
-    nextAttempt: 'N/A',
-  },
-  {
-    campaign: 'Startup Seed Round',
-    status: 'Completed',
-    channel: 'Email & Call',
-    lastContacted: '2023-09-15',
-    nextAttempt: 'N/A',
-  },
-  {
-    campaign: 'New Year SaaS Push',
-    status: 'Scheduled',
-    channel: 'Email',
-    lastContacted: 'N/A',
-    nextAttempt: '2024-01-05',
-  },
-];
+export interface Campaign {
+  id: string;
+  solutionName: string;
+  leadProfile: string;
+  emailScript: string;
+  callScript: string;
+  status: 'Active' | 'Paused';
+}
+
+const initialCampaigns: Campaign[] = [
+    {
+        id: "1",
+        solutionName: "Q4 Fintech Outreach",
+        leadProfile: "Financial services companies in New York",
+        status: 'Active',
+        emailScript: "Initial email script for Fintech.",
+        callScript: "Initial call script for Fintech."
+    },
+    {
+        id: "2",
+        solutionName: "EU E-commerce Initiative",
+        leadProfile: "E-commerce businesses in Europe",
+        status: 'Paused',
+        emailScript: "Initial email script for E-commerce.",
+        callScript: "Initial call script for E-commerce."
+    }
+]
 
 export default function CampaignsPage() {
+  const [campaigns, setCampaigns] = useState<Campaign[]>(initialCampaigns);
+  const [activeTab, setActiveTab] = useState('create');
+
+  const handleStartCampaign = (
+    campaignData: Omit<Campaign, 'id' | 'status'>
+  ) => {
+    setCampaigns((prev) => [
+      ...prev,
+      {
+        ...campaignData,
+        id: `campaign-${Date.now()}`,
+        status: 'Active',
+      },
+    ]);
+    setActiveTab('tracker');
+  };
+
+  const toggleCampaignStatus = (id: string) => {
+    setCampaigns(campaigns.map(c => 
+      c.id === id ? { ...c, status: c.status === 'Active' ? 'Paused' : 'Active' } : c
+    ));
+  }
+
   return (
-    <Tabs defaultValue="create" className="grid gap-6">
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="grid gap-6">
       <div className="flex items-center">
         <TabsList>
           <TabsTrigger value="create">Create Campaign</TabsTrigger>
-          <TabsTrigger value="tracker">Attempt Tracker</TabsTrigger>
+          <TabsTrigger value="tracker">Campaign Tracker</TabsTrigger>
         </TabsList>
       </div>
       <TabsContent value="create">
@@ -67,51 +94,56 @@ export default function CampaignsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <CampaignCreationForm />
+            <CampaignCreationForm onStartCampaign={handleStartCampaign} />
           </CardContent>
         </Card>
       </TabsContent>
       <TabsContent value="tracker">
         <Card>
           <CardHeader>
-            <CardTitle>Attempt Tracker</CardTitle>
+            <CardTitle>Campaign Tracker</CardTitle>
             <CardDescription>
-              Monitor the status and schedule of all your outreach campaigns.
+              Monitor and manage all your active and paused outreach campaigns.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Campaign</TableHead>
+                  <TableHead>Solution</TableHead>
+                  <TableHead>Lead Profile</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Channel</TableHead>
-                  <TableHead>Last Contacted</TableHead>
-                  <TableHead>Next Attempt</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {attempts.map((attempt) => (
-                  <TableRow key={attempt.campaign}>
+                {campaigns.map((campaign) => (
+                  <TableRow key={campaign.id}>
                     <TableCell className="font-medium">
-                      {attempt.campaign}
+                      {campaign.solutionName}
+                    </TableCell>
+                    <TableCell>
+                      {campaign.leadProfile}
                     </TableCell>
                     <TableCell>
                       <Badge
                         variant={
-                          attempt.status === 'In Progress'
+                          campaign.status === 'Active'
                             ? 'default'
-                            : attempt.status === 'Completed'
-                            ? 'secondary'
                             : 'outline'
                         }
                       >
-                        {attempt.status}
+                        {campaign.status}
                       </Badge>
                     </TableCell>
-                    <TableCell>{attempt.channel}</TableCell>
-                    <TableCell>{attempt.lastContacted}</TableCell>
-                    <TableCell>{attempt.nextAttempt}</TableCell>
+                    <TableCell className="space-x-2">
+                      <Switch 
+                        checked={campaign.status === 'Active'}
+                        onCheckedChange={() => toggleCampaignStatus(campaign.id)}
+                        aria-label="Toggle campaign status"
+                      />
+                       <Button variant="outline" size="sm">Edit</Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
