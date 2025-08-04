@@ -80,6 +80,7 @@ export function CampaignCreationForm({ onCampaignSubmit, editingCampaign, clearE
       setIsEditing(true);
     } else {
       setIsEditing(false);
+      // Reset form when not editing
       formRef.current?.reset();
       setGeneratedContent(null);
       setEmailScript('');
@@ -114,7 +115,14 @@ export function CampaignCreationForm({ onCampaignSubmit, editingCampaign, clearE
   };
   
   const handleSubmitCampaign = () => {
-    if (!selectedSolution || !selectedLeadProfile) return;
+    if (!selectedSolution || !selectedLeadProfile) {
+        toast({
+            title: 'Missing Information',
+            description: 'Please select a solution and a lead profile.',
+            variant: 'destructive'
+        });
+        return;
+    }
 
     onCampaignSubmit({
         solutionName: selectedSolution,
@@ -131,18 +139,26 @@ export function CampaignCreationForm({ onCampaignSubmit, editingCampaign, clearE
     if (isEditing) {
       clearEditing();
     } else {
+      formRef.current?.reset();
       setGeneratedContent(null);
       setEmailScript('');
       setCallScript('');
       setSelectedSolution('');
       setSelectedLeadProfile('');
-      formRef.current?.reset();
     }
   }
 
   return (
     <div className="space-y-6">
-      <form ref={formRef} action={formAction} className="space-y-4">
+      <form ref={formRef} action={formAction} className="space-y-4" onSubmit={(e) => {
+          // Prevent default form submission for AI generation part
+          if (!generatedContent) {
+              formAction(new FormData(e.currentTarget));
+              e.preventDefault();
+          } else {
+              e.preventDefault();
+          }
+      }}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
                 <Label htmlFor="solution">Solution</Label>
@@ -178,11 +194,11 @@ export function CampaignCreationForm({ onCampaignSubmit, editingCampaign, clearE
             </div>
         </div>
         <div className="flex flex-col md:flex-row gap-2">
-          {!isEditing && <SubmitButton />}
+           {!isEditing && !generatedContent && <SubmitButton />}
         </div>
       </form>
 
-      {state.error && (
+      {state.error && !generatedContent && (
         <Alert variant="destructive">
           <Terminal className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
