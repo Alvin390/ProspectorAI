@@ -83,14 +83,14 @@ export function CampaignCreationForm({ solutions, profiles, onCampaignSubmit, ed
     } else {
       // Reset form when not editing or when editingCampaign is cleared
       setIsEditing(false);
-      formRef.current?.reset();
+      if (formRef.current) formRef.current.reset();
       setGeneratedContent(null);
       setEmailScript('');
       setCallScript('');
       setSelectedSolution('');
       setSelectedLeadProfile('');
     }
-  }, [editingCampaign, state]);
+  }, [editingCampaign]);
 
 
   useEffect(() => {
@@ -125,8 +125,11 @@ export function CampaignCreationForm({ solutions, profiles, onCampaignSubmit, ed
     setCallScript('');
     setSelectedSolution('');
     setSelectedLeadProfile('');
+    state.message = '';
+    state.data = null;
+    state.error = null;
     if (isEditing) {
-        clearEditing(); // This will trigger the useEffect to clean up state
+        clearEditing();
     }
   }
 
@@ -161,10 +164,12 @@ export function CampaignCreationForm({ solutions, profiles, onCampaignSubmit, ed
     <div className="space-y-6">
       <form action={formAction} ref={formRef} className="space-y-4">
         <input type="hidden" name="solutions" value={JSON.stringify(solutions)} />
+        <input type="hidden" name="solution" value={selectedSolution} />
+        <input type="hidden" name="leadProfile" value={selectedLeadProfile} />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
                 <Label htmlFor="solution">Solution</Label>
-                <Select name="solution" required value={selectedSolution} onValueChange={setSelectedSolution} disabled={isEditing || !!generatedContent}>
+                <Select name="solution-select" required value={selectedSolution} onValueChange={setSelectedSolution} disabled={isEditing || !!generatedContent}>
                     <SelectTrigger id="solution">
                         <SelectValue placeholder="Select a solution" />
                     </SelectTrigger>
@@ -177,7 +182,7 @@ export function CampaignCreationForm({ solutions, profiles, onCampaignSubmit, ed
             </div>
             <div className="space-y-2">
                 <Label htmlFor="lead-profile">Lead Profile</Label>
-                <Select name="leadProfile" required value={selectedLeadProfile} onValueChange={setSelectedLeadProfile} disabled={isEditing || !!generatedContent}>
+                <Select name="leadProfile-select" required value={selectedLeadProfile} onValueChange={setSelectedLeadProfile} disabled={isEditing || !!generatedContent}>
                 <SelectTrigger id="lead-profile">
                     <SelectValue placeholder="Select a lead profile" />
                 </SelectTrigger>
@@ -250,17 +255,11 @@ export function CampaignCreationForm({ solutions, profiles, onCampaignSubmit, ed
               </CardContent>
             </Card>
           </div>
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-2 mt-4">
             {isEditing ? (
               <Button variant="outline" onClick={resetFormState}>Cancel</Button>
             ) : (
-                <Button variant="outline" onClick={() => {
-                    setGeneratedContent(null);
-                    // Also clear formAction state to allow re-generation
-                    state.message = '';
-                    state.data = null;
-                    state.error = null;
-                }}>
+                <Button variant="outline" onClick={resetFormState}>
                     Generate New
                 </Button>
             )}

@@ -20,6 +20,10 @@ import type { ConversationalCallInput, ConversationalCallOutput } from '@/ai/flo
 import {
     runOrchestrator,
 } from '@/ai/flows/outreach-orchestrator';
+import {
+    handleEmailFollowUp
+} from '@/ai/flows/email-follow-up';
+import type { EmailFollowUpInput, EmailFollowUpOutput } from '@/ai/flows/email-follow-up.schema';
 import { z } from 'zod';
 import type { Campaign } from './campaigns/page';
 import type { Solution } from './solutions/data';
@@ -203,5 +207,22 @@ export async function handleRunOrchestrator(campaign: Campaign, solutions: Solut
         return { message: 'success', error: null };
     } catch (e: any) {
         return { message: 'error', error: e.message || 'An unknown error occurred while running the orchestrator.' };
+    }
+}
+
+interface EmailFollowUpState {
+    message: string;
+    data: EmailFollowUpOutput | null;
+    error: string | null;
+}
+
+export async function handleAIEmailFollowUp(
+    input: EmailFollowUpInput
+): Promise<EmailFollowUpState> {
+    try {
+        const result = await handleEmailFollowUp(input);
+        return { message: 'success', data: result, error: null };
+    } catch (e: any) {
+        return { message: 'error', data: null, error: e.message || 'An unknown error occurred.' };
     }
 }
