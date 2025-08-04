@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useState, useEffect, useRef, useActionState } from 'react';
-import { useFormStatus } from 'react-dom';
+import { useState, useEffect, useRef, useTransition } from 'react';
+import { useFormState, useFormStatus } from 'react-dom';
 import {
   Card,
   CardContent,
@@ -65,8 +65,9 @@ function SubmitButton() {
 }
 
 export default function LiveCallPage() {
-  const [state, formAction] = useActionState(handleConversationalCall, initialState);
-  
+  const [state, formAction] = useFormState(handleConversationalCall, initialState);
+  const [isPending, startTransition] = useTransition();
+
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [solutions, setSolutions] = useState<Solution[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -76,7 +77,6 @@ export default function LiveCallPage() {
   const [orchestrationPlan, setOrchestrationPlan] = useState<OutreachOrchestratorOutput | null>(null);
 
   const [conversation, setConversation] = useState<Message[]>([]);
-  const [currentLeadResponse, setCurrentLeadResponse] = useState('');
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -136,7 +136,14 @@ export default function LiveCallPage() {
   const handleFormSubmit = (formData: FormData) => {
     const userResponse = formData.get('userResponse') as string;
     if (userResponse) {
-        setConversation(prev => [...prev, { role: 'user', text: userResponse }]);
+        startTransition(() => {
+            setConversation(prev => [...prev, { role: 'user', text: userResponse }]);
+        });
+        
+        // We need to manually add the latest user response to the history for the action
+        const currentConversation = [...conversation, { role: 'user', text: userResponse }];
+        formData.set('conversationHistory', JSON.stringify(currentConversation));
+        
         formAction(formData);
         formRef.current?.reset();
     }
