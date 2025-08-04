@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -22,11 +23,25 @@ const prompt = ai.definePrompt({
   name: 'generateLeadProfilePrompt',
   input: {schema: GenerateLeadProfileInputSchema},
   output: {schema: GenerateLeadProfileOutputSchema},
-  prompt: `You are an expert marketing analyst specializing in lead profile generation.
+  prompt: `You are an expert market strategist and business analyst. Your task is to identify and describe a wide range of potential customer segments for a given solution.
 
-You will use the following information to generate a detailed lead profile, including key attributes and online presence, to efficiently target potential customers.
+Instead of focusing on a single ideal person, think broadly about all the types of organizations, businesses, institutions, and sectors that would benefit from this solution.
 
-Description of ideal customer: {{{$input}}}`,
+**Instructions:**
+1.  **Analyze the Solution:** Based on the description provided, deeply understand the core problem it solves and the value it offers.
+2.  **Identify Broad Segments:** Brainstorm a list of diverse potential customer segments. This should include various types of entities like companies (by size, industry), businesses, schools, hospitals, banks, non-profits, government institutions, etc.
+3.  **Detail the Profile:** For the segments you identify, generate a comprehensive profile that includes:
+    *   **Key Attributes:** Describe the common characteristics of these segments. Include their industry, potential size, common goals, and the specific pain points the solution would address for them.
+    *   **Online Presence:** Describe where these organizations and their key decision-makers are likely to be found online. Mention professional networks (like LinkedIn), industry-specific forums, publications they read, and conferences they might attend.
+
+**Context:**
+---
+**Solution Description:**
+{{{$input}}}
+---
+
+Based on the provided context, generate the "Key Attributes" and "Online Presence" for the wide range of potential customer segments.
+`,
 });
 
 const generateLeadProfileFlow = ai.defineFlow(
