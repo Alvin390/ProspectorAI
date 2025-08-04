@@ -58,18 +58,18 @@ export function CampaignCreationForm({ solutions, profiles, onCampaignSubmit, ed
   const [emailScript, setEmailScript] = useState('');
   const [callScript, setCallScript] = useState('');
   const [generatedContent, setGeneratedContent] = useState<GenerateCampaignContentOutput | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
-
+  
   const formRef = useRef<HTMLFormElement>(null);
   
-  const [selectedSolution, setSelectedSolution] = useState<string>('');
-  const [selectedLeadProfile, setSelectedLeadProfile] = useState<string>('');
-  
+  const [selectedSolutionName, setSelectedSolutionName] = useState<string>('');
+  const [selectedLeadProfileId, setSelectedLeadProfileId] = useState<string>('');
+
+  const isEditing = !!editingCampaign;
+
   useEffect(() => {
     if (editingCampaign) {
-      setIsEditing(true);
-      setSelectedSolution(editingCampaign.solutionName);
-      setSelectedLeadProfile(editingCampaign.leadProfile);
+      setSelectedSolutionName(editingCampaign.solutionName);
+      setSelectedLeadProfileId(editingCampaign.leadProfileId);
       setEmailScript(editingCampaign.emailScript);
       setCallScript(editingCampaign.callScript);
       setGeneratedContent({
@@ -81,8 +81,7 @@ export function CampaignCreationForm({ solutions, profiles, onCampaignSubmit, ed
       state.data = null;
       state.error = null;
     } else {
-      // Reset form when not editing or when editingCampaign is cleared
-      setIsEditing(false);
+       // Reset form when not editing or when editingCampaign is cleared
       resetFormState();
     }
   }, [editingCampaign]);
@@ -118,8 +117,8 @@ export function CampaignCreationForm({ solutions, profiles, onCampaignSubmit, ed
     setGeneratedContent(null);
     setEmailScript('');
     setCallScript('');
-    setSelectedSolution('');
-    setSelectedLeadProfile('');
+    setSelectedSolutionName('');
+    setSelectedLeadProfileId('');
     state.message = '';
     state.data = null;
     state.error = null;
@@ -130,13 +129,13 @@ export function CampaignCreationForm({ solutions, profiles, onCampaignSubmit, ed
 
   const handleSubmitCampaign = () => {
     const campaignData = {
-        solutionName: selectedSolution,
-        leadProfile: selectedLeadProfile,
+        solutionName: selectedSolutionName,
+        leadProfileId: selectedLeadProfileId,
         emailScript,
         callScript
     };
 
-    if (!campaignData.solutionName || !campaignData.leadProfile || !campaignData.emailScript || !campaignData.callScript) {
+    if (!campaignData.solutionName || !campaignData.leadProfileId || !campaignData.emailScript || !campaignData.callScript) {
         toast({
             title: 'Missing Information',
             description: 'Please ensure all fields are filled and content is generated.',
@@ -159,12 +158,13 @@ export function CampaignCreationForm({ solutions, profiles, onCampaignSubmit, ed
     <div className="space-y-6">
       <form action={formAction} ref={formRef} className="space-y-4">
         <input type="hidden" name="solutions" value={JSON.stringify(solutions)} />
-        <input type="hidden" name="solution" value={selectedSolution} />
-        <input type="hidden" name="leadProfile" value={selectedLeadProfile} />
+        <input type="hidden" name="profiles" value={JSON.stringify(profiles)} />
+        <input type="hidden" name="solutionName" value={selectedSolutionName} />
+        <input type="hidden" name="leadProfileId" value={selectedLeadProfileId} />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
                 <Label htmlFor="solution">Solution</Label>
-                <Select name="solution-select" required value={selectedSolution} onValueChange={setSelectedSolution} disabled={isEditing || !!generatedContent}>
+                <Select name="solution-select" required value={selectedSolutionName} onValueChange={setSelectedSolutionName} disabled={isEditing || !!generatedContent}>
                     <SelectTrigger id="solution">
                         <SelectValue placeholder="Select a solution" />
                     </SelectTrigger>
@@ -177,20 +177,20 @@ export function CampaignCreationForm({ solutions, profiles, onCampaignSubmit, ed
             </div>
             <div className="space-y-2">
                 <Label htmlFor="lead-profile">Lead Profile</Label>
-                <Select name="leadProfile-select" required value={selectedLeadProfile} onValueChange={setSelectedLeadProfile} disabled={isEditing || !!generatedContent}>
+                <Select name="leadProfile-select" required value={selectedLeadProfileId} onValueChange={setSelectedLeadProfileId} disabled={isEditing || !!generatedContent}>
                 <SelectTrigger id="lead-profile">
                     <SelectValue placeholder="Select a lead profile" />
                 </SelectTrigger>
                 <SelectContent>
                     {profiles.map(profile => (
-                        <SelectItem key={profile.id} value={profile.description}>{profile.description}</SelectItem>
+                        <SelectItem key={profile.id} value={profile.id}>{profile.name}</SelectItem>
                     ))}
                 </SelectContent>
                 </Select>
             </div>
         </div>
         <div className="flex flex-col md:flex-row gap-2">
-           {!isEditing && <SubmitButton disabled={!!generatedContent || !selectedSolution || !selectedLeadProfile} />}
+           {!isEditing && <SubmitButton disabled={!!generatedContent || !selectedSolutionName || !selectedLeadProfileId} />}
         </div>
       </form>
 

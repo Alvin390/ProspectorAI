@@ -35,12 +35,17 @@ import { initialProfiles, type Profile } from './data';
 
 
 export default function LeadProfilingPage() {
-  const [profiles, setProfiles] = useState<Profile[]>(initialProfiles);
-  const [solutions, setSolutions] = useState<Solution[]>(initialSolutions);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [solutions, setSolutions] = useState<Solution[]>([]);
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
+    // Set initial state from default data first to avoid hydration issues
+    setProfiles(initialProfiles);
+    setSolutions(initialSolutions);
+    
+    // Then, try to load from localStorage on the client
     const savedProfiles = localStorage.getItem('profiles');
     if (savedProfiles) {
         try {
@@ -67,7 +72,10 @@ export default function LeadProfilingPage() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('profiles', JSON.stringify(profiles));
+    // This effect runs only on the client, so it's safe to use localStorage
+    if (typeof window !== 'undefined') {
+        localStorage.setItem('profiles', JSON.stringify(profiles));
+    }
   }, [profiles]);
   
 
@@ -75,6 +83,7 @@ export default function LeadProfilingPage() {
     if (profileData.id && editingProfile) { // This is an update
         setProfiles(profiles.map(p => p.id === editingProfile.id ? {
             ...p,
+            name: profileData.name!,
             description: profileData.description!,
             profileData: generatedData,
         } : p));
@@ -82,6 +91,7 @@ export default function LeadProfilingPage() {
     } else { // This is a new profile
         const newProfile: Profile = {
             id: `profile-${Date.now()}`,
+            name: profileData.name!,
             description: profileData.description!,
             status: 'Completed',
             createdAt: new Date().toISOString().split('T')[0],
@@ -113,11 +123,11 @@ export default function LeadProfilingPage() {
     <div className="grid gap-6">
       <Card>
         <CardHeader>
-          <CardTitle>{editingProfile ? `Editing: ${editingProfile.description}` : 'AI-Powered Lead Profiling'}</CardTitle>
+          <CardTitle>{editingProfile ? `Editing: ${editingProfile.name}` : 'AI-Powered Lead Profiling'}</CardTitle>
           <CardDescription>
              {editingProfile 
-                ? 'Regenerate or modify the description for this profile.' 
-                : 'Select one of your solutions or describe your ideal customer, and our AI will generate a detailed profile to help you find the perfect leads.'
+                ? 'Modify the details for this profile.' 
+                : 'Select a solution or describe an ideal customer, and the AI will generate a detailed market profile.'
              }
           </CardDescription>
         </CardHeader>
@@ -133,7 +143,7 @@ export default function LeadProfilingPage() {
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle>Past Profiles</CardTitle>
+          <CardTitle>Saved Profiles</CardTitle>
           <CardDescription>
             Review and manage your previously generated lead profiles.
           </CardDescription>
@@ -142,6 +152,7 @@ export default function LeadProfilingPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Profile Name</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Created At</TableHead>
@@ -152,6 +163,9 @@ export default function LeadProfilingPage() {
               {profiles.map((profile) => (
                 <TableRow key={profile.id}>
                   <TableCell className="font-medium">
+                    {profile.name}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground max-w-xs truncate">
                     {profile.description}
                   </TableCell>
                   <TableCell>

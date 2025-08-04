@@ -27,6 +27,7 @@ import type { EmailFollowUpInput, EmailFollowUpOutput } from '@/ai/flows/email-f
 import { z } from 'zod';
 import type { Campaign } from './campaigns/page';
 import type { Solution } from './solutions/data';
+import type { Profile } from './leads/data';
 
 interface LeadProfileFormState {
   message: string;
@@ -69,27 +70,39 @@ export async function handleGenerateCampaignContent(
   formData: FormData
 ): Promise<CampaignContentFormState> {
   const schema = z.object({
-    solution: z.string().min(1, 'Please select a solution'),
-    leadProfile: z.string().min(1, 'Please select a lead profile'),
-    solutions: z.string(), // We will pass the full solutions list as a JSON string
+    solutionName: z.string().min(1, 'Please select a solution'),
+    leadProfileId: z.string().min(1, 'Please select a lead profile'),
+    solutions: z.string(),
+    profiles: z.string(),
   });
 
   try {
     const validated = schema.parse({
-      solution: formData.get('solution'),
-      leadProfile: formData.get('leadProfile'),
+      solutionName: formData.get('solutionName'),
+      leadProfileId: formData.get('leadProfileId'),
       solutions: formData.get('solutions'),
+      profiles: formData.get('profiles'),
     });
 
     const solutions: Solution[] = JSON.parse(validated.solutions);
-    const solution = solutions.find(s => s.name === validated.solution);
+    const profiles: Profile[] = JSON.parse(validated.profiles);
+    
+    const solution = solutions.find(s => s.name === validated.solutionName);
     if (!solution) {
       return { message: 'error', data: null, error: 'Selected solution not found.' };
     }
 
+    const profile = profiles.find(p => p.id === validated.leadProfileId);
+     if (!profile || !profile.profileData) {
+      return { message: 'error', data: null, error: 'Selected lead profile or its data not found.' };
+    }
+
+    // Convert profileData object to a string for the AI prompt
+    const leadProfileString = `Attributes: ${profile.profileData.attributes}\nOnline Presence: ${profile.profileData.onlinePresence}`;
+
     const result = await generateCampaignContent({
         solutionDescription: solution.description,
-        leadProfile: validated.leadProfile
+        leadProfile: leadProfileString
     });
     return { message: 'success', data: result, error: null };
   } catch (e: any) {
@@ -188,17 +201,24 @@ const mockLeads = [
     { id: 'lead-005', name: 'Emily White', company: 'Growth Partners', contact: 'emily@growth.partners' }
 ];
 
-export async function handleRunOrchestrator(campaign: Campaign, solutions: Solution[]): Promise<OrchestratorState> {
+export async function handleRunOrchestrator(campaign: Campaign, solutions: Solution[], profiles: Profile[]): Promise<OrchestratorState> {
     const solution = solutions.find(s => s.name === campaign.solutionName);
     if (!solution) {
         return { message: 'error', error: 'Solution definition not found for this campaign.' };
     }
 
+    const profile = profiles.find(p => p.id === campaign.leadProfileId);
+    if (!profile || !profile.profileData) {
+        return { message: 'error', error: 'Lead profile data not found for this campaign.' };
+    }
+
+    const leadProfileString = `Attributes: ${profile.profileData.attributes}\nOnline Presence: ${profile.profileData.onlinePresence}`;
+
     try {
         const result = await runOrchestrator({
             campaignId: campaign.id,
             solutionDescription: solution.description,
-            leadProfile: campaign.leadProfile,
+            leadProfile: leadProfileString,
             potentialLeads: mockLeads // Using mock leads for demonstration
         });
         

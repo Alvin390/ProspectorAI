@@ -10,6 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { handleGenerateLeadProfile } from '@/app/actions';
 import { Terminal, Save } from 'lucide-react';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -45,14 +46,17 @@ interface LeadProfilingFormProps {
 
 export function LeadProfilingForm({ solutions, onProfileSave, editingProfile, onCancel }: LeadProfilingFormProps) {
   const [state, formAction] = useActionState(handleGenerateLeadProfile, initialState);
+  const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [generatedData, setGeneratedData] = useState<GenerateLeadProfileOutput | null>(null);
 
   useEffect(() => {
     if (editingProfile) {
+        setName(editingProfile.name || '');
         setDescription(editingProfile.description || '');
         setGeneratedData(editingProfile.profileData || null);
     } else {
+        setName('');
         setDescription('');
         setGeneratedData(null);
     }
@@ -74,13 +78,15 @@ export function LeadProfilingForm({ solutions, onProfileSave, editingProfile, on
   };
   
   const handleSaveClick = () => {
-    if (generatedData) {
+    if (generatedData && name && description) {
         const profileData: Partial<Profile> = {
             id: editingProfile?.id,
+            name: name,
             description: description,
         };
         onProfileSave(profileData, generatedData);
         // Reset form after saving
+        setName('');
         setDescription('');
         setGeneratedData(null);
         state.message = '';
@@ -92,9 +98,9 @@ export function LeadProfilingForm({ solutions, onProfileSave, editingProfile, on
   return (
     <div className="space-y-6">
       <form action={formAction} className="space-y-4">
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="solution">Select a Solution (Optional)</Label>
+         <div className="space-y-2">
+            <Label htmlFor="solution">Base Profile on a Solution (Optional)</Label>
+            <p className="text-sm text-muted-foreground">Select a solution to pre-fill the description.</p>
             <Select name="solution" onValueChange={handleSolutionChange}>
               <SelectTrigger id="solution">
                 <SelectValue placeholder="Select a solution..." />
@@ -107,23 +113,20 @@ export function LeadProfilingForm({ solutions, onProfileSave, editingProfile, on
                 ))}
               </SelectContent>
             </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="or-divider">Or</Label>
-            <p className="text-sm text-muted-foreground pt-2">
-              Describe your ideal customer directly.
-            </p>
-          </div>
         </div>
 
-        <Textarea
-          name="description"
-          placeholder="e.g., B2B SaaS companies in the fintech sector with annual revenue over $10M and using HubSpot..."
-          rows={4}
-          required
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
+        <div className='space-y-2'>
+            <Label htmlFor="description">Or Describe Your Ideal Customer</Label>
+            <Textarea
+            name="description"
+            id="description"
+            placeholder="e.g., B2B SaaS companies in the fintech sector with annual revenue over $10M and using HubSpot..."
+            rows={4}
+            required
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            />
+        </div>
         <SubmitButton />
       </form>
 
@@ -137,7 +140,17 @@ export function LeadProfilingForm({ solutions, onProfileSave, editingProfile, on
 
       {generatedData && (
          <>
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className='space-y-2 pt-4'>
+                <Label htmlFor='profile-name'>Profile Name</Label>
+                <p className="text-sm text-muted-foreground">Give this generated profile a short, memorable name.</p>
+                <Input 
+                    id="profile-name" 
+                    placeholder="e.g., NY FinTech Startups"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                />
+            </div>
+            <div className="grid gap-4 md:grid-cols-2 pt-4">
             <Card>
                 <CardHeader>
                 <CardTitle>Key Attributes</CardTitle>
@@ -157,7 +170,7 @@ export function LeadProfilingForm({ solutions, onProfileSave, editingProfile, on
             </div>
             <div className="flex justify-end gap-2">
                 {editingProfile && <Button variant="outline" onClick={onCancel}>Cancel</Button>}
-                <Button onClick={handleSaveClick}>
+                <Button onClick={handleSaveClick} disabled={!name}>
                     <Save className="mr-2 h-4 w-4" />
                     {editingProfile ? 'Update Profile' : 'Save New Profile'}
                 </Button>

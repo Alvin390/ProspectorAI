@@ -30,41 +30,28 @@ import { type Profile, initialProfiles } from '@/app/leads/data';
 export interface Campaign {
   id: string;
   solutionName: string;
-  leadProfile: string;
+  leadProfileId: string;
   emailScript: string;
   callScript: string;
   status: 'Active' | 'Paused';
 }
 
-const initialCampaigns: Campaign[] = [
-    {
-        id: "1",
-        solutionName: "Q4 Fintech Outreach",
-        leadProfile: "Financial services companies in New York",
-        status: 'Active',
-        emailScript: "Initial email script for Fintech.",
-        callScript: "Initial call script for Fintech."
-    },
-    {
-        id: "2",
-        solutionName: "EU E-commerce Initiative",
-        leadProfile: "E-commerce businesses in Europe",
-        status: 'Paused',
-        emailScript: "Initial email script for E-commerce.",
-        callScript: "Initial call script for E-commerce."
-    }
-]
-
 export default function CampaignsPage() {
-  const [campaigns, setCampaigns] = useState<Campaign[]>(initialCampaigns);
-  const [solutions, setSolutions] = useState<Solution[]>(initialSolutions);
-  const [profiles, setProfiles] = useState<Profile[]>(initialProfiles);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [solutions, setSolutions] = useState<Solution[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [activeTab, setActiveTab] = useState('tracker');
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
   useEffect(() => {
+    // Set initial state from default data first to avoid hydration issues
+    setCampaigns([]);
+    setSolutions(initialSolutions);
+    setProfiles(initialProfiles);
+
+    // Then, try to load from localStorage on the client
     const savedCampaigns = localStorage.getItem('campaigns');
     if (savedCampaigns) {
         try {
@@ -103,7 +90,10 @@ export default function CampaignsPage() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('campaigns', JSON.stringify(campaigns));
+    // This effect runs only on the client, so it's safe to use localStorage
+    if (typeof window !== 'undefined') {
+        localStorage.setItem('campaigns', JSON.stringify(campaigns));
+    }
   }, [campaigns]);
 
 
@@ -128,7 +118,7 @@ export default function CampaignsPage() {
       setCampaigns((prev) => [newCampaign, ...prev]);
 
       startTransition(async () => {
-          const result = await handleRunOrchestrator(newCampaign, solutions);
+          const result = await handleRunOrchestrator(newCampaign, solutions, profiles);
           if (result.message === 'error') {
               toast({
                   title: 'Orchestrator Failed',
@@ -156,7 +146,7 @@ export default function CampaignsPage() {
 
     if (newStatus === 'Active') {
         startTransition(async () => {
-            const result = await handleRunOrchestrator(updatedCampaign, solutions);
+            const result = await handleRunOrchestrator(updatedCampaign, solutions, profiles);
              if (result.message === 'error') {
               toast({
                   title: 'Orchestrator Failed',
@@ -180,6 +170,11 @@ export default function CampaignsPage() {
 
   const clearEditing = () => {
     setEditingCampaign(null);
+  }
+
+  const getProfileNameById = (id: string) => {
+    const profile = profiles.find(p => p.id === id);
+    return profile ? profile.name : 'Unknown Profile';
   }
 
   return (
@@ -241,8 +236,8 @@ export default function CampaignsPage() {
                     <TableCell className="font-medium">
                       {campaign.solutionName}
                     </TableCell>
-                    <TableCell>
-                      {campaign.leadProfile}
+                    <TableCell className="text-muted-foreground">
+                      {getProfileNameById(campaign.leadProfileId)}
                     </TableCell>
                     <TableCell>
                       <Badge

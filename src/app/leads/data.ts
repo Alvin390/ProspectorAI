@@ -3,6 +3,7 @@ import type { GenerateLeadProfileOutput } from "@/ai/flows/generate-lead-profile
 
 export interface Profile {
   id: string;
+  name: string;
   description: string;
   status: 'Completed';
   createdAt: string;
@@ -12,6 +13,7 @@ export interface Profile {
 export const initialProfiles: Profile[] = [
   {
     id: '1',
+    name: 'Silicon Valley Startups',
     description: 'Tech startups in Silicon Valley with 50-100 employees',
     status: 'Completed',
     createdAt: '2023-10-27',
@@ -22,6 +24,7 @@ export const initialProfiles: Profile[] = [
   },
   {
     id: '2',
+    name: 'European E-commerce',
     description: 'E-commerce businesses in Europe selling fashion goods',
     status: 'Completed',
     createdAt: '2023-10-25',
@@ -32,6 +35,7 @@ export const initialProfiles: Profile[] = [
   },
   {
     id: '3',
+    name: 'NY Financial Services',
     description: 'Financial services companies in New York',
     status: 'Completed',
     createdAt: '2023-10-22',
