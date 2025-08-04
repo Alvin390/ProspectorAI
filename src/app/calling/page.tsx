@@ -1,151 +1,200 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useActionState, useRef } from 'react';
+import { useFormStatus } from 'react-dom';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Phone, Send, User, Bot } from 'lucide-react';
 import type { Campaign } from '@/app/campaigns/page';
+import { handleConversationalCall } from '@/app/actions';
+import { useToast } from '@/hooks/use-toast';
+import { initialSolutions } from '@/app/solutions/data';
 
-// Mock function to fetch campaigns. In a real app, this would be an API call or come from shared state.
-const getCampaigns = (): Campaign[] => {
-  // We'll use a simplified version of the initial campaigns for now.
-  // In a real application, this would likely come from a global state manager (like Context or Zustand)
-  // or be fetched from a database.
-  const campaignsFromStorage = typeof window !== 'undefined' ? localStorage.getItem('campaigns') : null;
-  if (campaignsFromStorage) {
-    return JSON.parse(campaignsFromStorage);
-  }
-  return [
-     {
-        id: "1",
-        solutionName: "Q4 Fintech Outreach",
-        leadProfile: "Financial services companies in New York",
-        status: 'Active',
-        emailScript: "Initial email script for Fintech.",
-        callScript: "Initial call script for Fintech."
-    },
-    {
-        id: "2",
-        solutionName: "EU E-commerce Initiative",
-        leadProfile: "E-commerce businesses in Europe",
-        status: 'Paused',
-        emailScript: "Initial email script for E-commerce.",
-        callScript: "Initial call script for E-commerce."
-    }
-  ];
+interface ConversationTurn {
+  role: 'user' | 'model';
+  text: string;
 }
 
-const generateMockCallLog = (campaigns: Campaign[]) => {
-    const activeCampaigns = campaigns.filter(c => c.status === 'Active');
-    const log: any[] = [];
-    const leadNames = ["Alex Rivera @ Innovate Inc.", "Samantha Bee @ DataCorp", "Michael Chen @ QuantumLeap"];
-    const rejectionReasons = ["Not interested.", "Already have a solution.", "No budget right now."];
+const initialCallState = {
+  message: '',
+  data: null,
+  error: null,
+};
 
-    activeCampaigns.forEach(campaign => {
-        // Add a few mock calls for each active campaign
-        for(let i=0; i < 3; i++) {
-             const statusOptions = ['Meeting Scheduled', 'Rejected', 'In Progress', 'Voicemail Left'];
-             const randomStatus = statusOptions[Math.floor(Math.random() * statusOptions.length)];
-             log.push({
-                lead: `${leadNames[i]} (${campaign.solutionName})`,
-                status: randomStatus,
-                duration: `0${Math.floor(Math.random() * 5)}:${String(Math.floor(Math.random()*60)).padStart(2, '0')}`,
-                reason: randomStatus === 'Rejected' ? rejectionReasons[Math.floor(Math.random() * rejectionReasons.length)] : '-',
-            });
-        }
-    });
-
-     if (log.length === 0) {
-        log.push({
-            lead: 'No active campaigns',
-            status: 'Idle',
-            duration: '-',
-            reason: 'Start a campaign to see call logs.',
-        })
-    }
-
-
-    return log;
+function SubmitButton({ disabled }: { disabled?: boolean }) {
+  const { pending } = useFormStatus();
+  return (
+    <Button type="submit" disabled={disabled || pending} size="icon">
+      {pending ? (
+        <Bot className="animate-spin h-5 w-5" />
+      ) : (
+        <Send className="h-5 w-5" />
+      )}
+    </Button>
+  );
 }
-
 
 export default function CallingPage() {
-  const [callLog, setCallLog] = useState<any[]>([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [activeCall, setActiveCall] = useState<Campaign | null>(null);
+  const [conversation, setConversation] = useState<ConversationTurn[]>([]);
+  const [userResponse, setUserResponse] = useState('');
+  const [callState, formAction, isPending] = useActionState(handleConversationalCall, initialCallState);
+  const { toast } = useToast();
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // This effect runs on the client and will fetch the latest campaigns
-    const campaigns = getCampaigns();
-    setCallLog(generateMockCallLog(campaigns));
-
-    // Optional: Listen for storage changes to update in near real-time
-    const handleStorageChange = () => {
-        const updatedCampaigns = getCampaigns();
-        setCallLog(generateMockCallLog(updatedCampaigns));
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => {
-        window.removeEventListener('storage', handleStorageChange);
-    };
+    const campaignsFromStorage = localStorage.getItem('campaigns');
+    if (campaignsFromStorage) {
+      setCampaigns(JSON.parse(campaignsFromStorage));
+    }
   }, []);
+  
+  useEffect(() => {
+    if (callState.message === 'error') {
+      toast({
+        title: 'Error during call',
+        description: callState.error,
+        variant: 'destructive',
+      });
+    }
+    if (callState.data) {
+      setConversation(prev => [...prev, { role: 'model', text: callState.data.responseText }]);
+      if (audioRef.current && callState.data.audioResponse) {
+        audioRef.current.src = callState.data.audioResponse;
+        audioRef.current.play();
+      }
+    }
+  }, [callState, toast]);
 
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+        scrollAreaRef.current.scrollTo({
+            top: scrollAreaRef.current.scrollHeight,
+            behavior: 'smooth'
+        });
+    }
+  }, [conversation])
+
+  const handleStartCall = (campaign: Campaign) => {
+    setActiveCall(campaign);
+    setConversation([{ role: 'model', text: "Hello! I'm calling from ProspectorAI..." }]); // Initial greeting
+  };
+
+  const handleEndCall = () => {
+    setActiveCall(null);
+    setConversation([]);
+  };
+
+  const submitResponse = (formData: FormData) => {
+     if (!userResponse.trim()) return;
+
+     setConversation(prev => [...prev, { role: 'user', text: userResponse }]);
+     
+     const solution = initialSolutions.find(s => s.name === activeCall!.solutionName);
+
+     formData.set('solutionDescription', solution?.description || '');
+     formData.set('leadProfile', activeCall!.leadProfile);
+     formData.set('callScript', activeCall!.callScript);
+     formData.set('conversationHistory', JSON.stringify(conversation));
+     formData.set('userResponse', userResponse);
+
+     formAction(formData);
+     setUserResponse('');
+  };
+
+  const activeCampaigns = campaigns.filter(c => c.status === 'Active');
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Outbound Calling Automation</CardTitle>
         <CardDescription>
-          Monitor your automated AI-powered call campaigns in real-time.
+          {activeCall 
+            ? `On a call for: ${activeCall.solutionName}`
+            : 'Select an active campaign to start a simulated call.'
+          }
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Lead</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Duration</TableHead>
-              <TableHead>Reason for Rejection</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {callLog.map((call, index) => (
-              <TableRow key={index}>
-                <TableCell className="font-medium">{call.lead}</TableCell>
-                <TableCell>
-                  <Badge
-                    variant={
-                      call.status === 'Meeting Scheduled'
-                        ? 'default'
-                        : call.status === 'Rejected'
-                        ? 'destructive'
-                        : 'outline'
-                    }
-                  >
-                    {call.status}
-                  </Badge>
-                </TableCell>
-                <TableCell>{call.duration}</TableCell>
-                <TableCell>{call.reason}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        {activeCall ? (
+          <div className="flex flex-col h-[60vh]">
+            <ScrollArea className="flex-grow p-4 border rounded-lg" ref={scrollAreaRef}>
+              <div className="space-y-4">
+                {conversation.map((turn, index) => (
+                  <div key={index} className={`flex items-start gap-3 ${turn.role === 'user' ? 'justify-end' : ''}`}>
+                    {turn.role === 'model' && (
+                      <span className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground">
+                        <Bot className="h-5 w-5" />
+                      </span>
+                    )}
+                    <div className={`rounded-lg px-4 py-2 max-w-[75%] ${turn.role === 'model' ? 'bg-muted' : 'bg-primary text-primary-foreground'}`}>
+                      <p className="text-sm">{turn.text}</p>
+                    </div>
+                     {turn.role === 'user' && (
+                      <span className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-muted text-muted-foreground">
+                        <User className="h-5 w-5" />
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+             <audio ref={audioRef} className="w-full mt-4" controls />
+             <form action={submitResponse} className="mt-4 flex items-center gap-2">
+                <Input
+                    name="userResponse"
+                    value={userResponse}
+                    onChange={(e) => setUserResponse(e.target.value)}
+                    placeholder="Type the lead's response here..."
+                    disabled={isPending}
+                />
+                <SubmitButton disabled={!userResponse.trim()} />
+            </form>
+          </div>
+        ) : (
+          <div>
+            {activeCampaigns.length > 0 ? (
+                <div className="space-y-2">
+                    {activeCampaigns.map(campaign => (
+                        <div key={campaign.id} className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                            <div>
+                                <h3 className="font-semibold">{campaign.solutionName}</h3>
+                                <p className="text-sm text-muted-foreground">{campaign.leadProfile}</p>
+                            </div>
+                            <Button onClick={() => handleStartCall(campaign)}><Phone className="mr-2 h-4 w-4"/> Start Call</Button>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                 <Alert>
+                    <Phone className="h-4 w-4" />
+                    <AlertTitle>No Active Campaigns</AlertTitle>
+                    <AlertDescription>
+                        You don't have any active campaigns. Go to the Campaigns page to start one.
+                    </AlertDescription>
+                </Alert>
+            )}
+          </div>
+        )}
       </CardContent>
+      {activeCall && (
+        <CardFooter className="flex justify-end">
+          <Button variant="destructive" onClick={handleEndCall}>End Call</Button>
+        </CardFooter>
+      )}
     </Card>
   );
 }

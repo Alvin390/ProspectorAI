@@ -12,6 +12,11 @@ import {
   textToSpeech,
   type TextToSpeechOutput,
 } from '@/ai/flows/text-to-speech';
+import {
+    conversationalCall,
+    type ConversationalCallInput,
+    type ConversationalCallOutput
+} from '@/ai/flows/conversational-call';
 import { z } from 'zod';
 import { initialSolutions } from './solutions/data';
 
@@ -115,6 +120,47 @@ export async function handleTextToSpeech(
         const result = await textToSpeech(validated.data);
         return { message: 'success', data: result, error: null };
     } catch (e: any) {
+        return { message: 'error', data: null, error: e.message || 'An unknown error occurred.' };
+    }
+}
+
+interface ConversationalCallState {
+    message: string;
+    data: ConversationalCallOutput | null;
+    error: string | null;
+}
+
+export async function handleConversationalCall(
+    prevState: ConversationalCallState,
+    formData: FormData
+): Promise<ConversationalCallState> {
+    const schema = z.object({
+        solutionDescription: z.string(),
+        leadProfile: z.string(),
+        callScript: z.string(),
+        conversationHistory: z.array(z.object({
+            role: z.string(),
+            text: z.string(),
+        })),
+        userResponse: z.string(),
+    });
+
+    try {
+        const validated = schema.parse({
+            solutionDescription: formData.get('solutionDescription'),
+            leadProfile: formData.get('leadProfile'),
+            callScript: formData.get('callScript'),
+            conversationHistory: JSON.parse(formData.get('conversationHistory') as string),
+            userResponse: formData.get('userResponse'),
+        });
+
+        const result = await conversationalCall(validated);
+        return { message: 'success', data: result, error: null };
+
+    } catch (e: any) {
+         if (e instanceof z.ZodError) {
+             return { message: 'error', data: null, error: e.errors.map(err => err.message).join(', ') };
+         }
         return { message: 'error', data: null, error: e.message || 'An unknown error occurred.' };
     }
 }
