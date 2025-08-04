@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Mail, CheckCircle, Clock, Send, AlertCircle as BounceIcon } from 'lucide-react';
 import type { Campaign } from '@/app/campaigns/page';
+import { type Solution, initialSolutions } from '@/app/solutions/data';
 
 interface EmailLog {
   id: string;
@@ -32,53 +33,61 @@ interface EmailLog {
   timestamp: string;
 }
 
-const generateMockEmailLogs = (campaigns: Campaign[]): EmailLog[] => {
-    if (campaigns.length === 0) return [];
+const generateMockEmailLogs = (campaigns: Campaign[], solutions: Solution[]): EmailLog[] => {
+    if (campaigns.length === 0 || solutions.length === 0) return [];
+    
     const activeCampaigns = campaigns.filter(c => c.status === 'Active');
     if (activeCampaigns.length === 0) return [];
 
-    const logs: EmailLog[] = [
-        {
-            id: 'email-1',
-            campaignId: activeCampaigns[0].id,
-            campaignName: activeCampaigns[0].solutionName,
-            leadIdentifier: 'contact@innovateinc.com',
-            status: 'Replied',
-            subject: 'Re: AI Discovery Tool',
-            timestamp: '1 hour ago'
-        },
-        {
-            id: 'email-2',
-            campaignId: activeCampaigns[0].id,
-            campaignName: activeCampaigns[0].solutionName,
-            leadIdentifier: 'info@synergycorp.io',
-            status: 'Opened',
-            subject: 'Your request for info',
-            timestamp: '4 hours ago'
-        }
-    ];
+    const getSolutionName = (id: string) => solutions.find(s => s.id === id)?.name || 'Unknown Campaign';
 
+    const logs: EmailLog[] = [];
+    
+    if (activeCampaigns.length > 0) {
+        const campaign = activeCampaigns[0];
+        logs.push(
+            {
+                id: 'email-1',
+                campaignId: campaign.id,
+                campaignName: getSolutionName(campaign.solutionId),
+                leadIdentifier: 'contact@innovateinc.com',
+                status: 'Replied',
+                subject: 'Re: AI Discovery Tool',
+                timestamp: '1 hour ago'
+            },
+            {
+                id: 'email-2',
+                campaignId: campaign.id,
+                campaignName: getSolutionName(campaign.solutionId),
+                leadIdentifier: 'info@synergycorp.io',
+                status: 'Opened',
+                subject: 'Your request for info',
+                timestamp: '4 hours ago'
+            },
+            {
+                id: 'email-4',
+                campaignId: campaign.id,
+                campaignName: getSolutionName(campaign.solutionId),
+                leadIdentifier: 'jane.doe@techstart.co',
+                status: 'Bounced',
+                subject: 'Quick question',
+                timestamp: '2 days ago'
+            }
+        );
+    }
+    
     if (activeCampaigns.length > 1) {
+        const campaign = activeCampaigns[1];
         logs.push({
             id: 'email-3',
-            campaignId: activeCampaigns[1].id,
-            campaignName: activeCampaigns[1].solutionName,
+            campaignId: campaign.id,
+            campaignName: getSolutionName(campaign.solutionId),
             leadIdentifier: 'pm@solutions.llc',
             status: 'Sent',
             subject: 'Following up',
             timestamp: 'Yesterday'
         });
     }
-     logs.push({
-        id: 'email-4',
-        campaignId: activeCampaigns[0].id,
-        campaignName: activeCampaigns[0].solutionName,
-        leadIdentifier: 'jane.doe@techstart.co',
-        status: 'Bounced',
-        subject: 'Quick question',
-        timestamp: '2 days ago'
-    });
-
 
     return logs;
 }
@@ -86,14 +95,24 @@ const generateMockEmailLogs = (campaigns: Campaign[]): EmailLog[] => {
 
 export default function EmailLogPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [solutions, setSolutions] = useState<Solution[]>([]);
   const [emailLogs, setEmailLogs] = useState<EmailLog[]>([]);
 
   useEffect(() => {
     const campaignsFromStorage = localStorage.getItem('campaigns');
-    if (campaignsFromStorage) {
-        const parsedCampaigns = JSON.parse(campaignsFromStorage);
-        setCampaigns(parsedCampaigns);
-        setEmailLogs(generateMockEmailLogs(parsedCampaigns));
+    const loadedCampaigns = campaignsFromStorage ? JSON.parse(campaignsFromStorage) : [];
+     if (Array.isArray(loadedCampaigns)) {
+        setCampaigns(loadedCampaigns);
+    }
+
+    const solutionsFromStorage = localStorage.getItem('solutions');
+    const loadedSolutions = solutionsFromStorage ? JSON.parse(solutionsFromStorage) : initialSolutions;
+     if (Array.isArray(loadedSolutions)) {
+        setSolutions(loadedSolutions);
+    }
+
+    if (loadedCampaigns.length > 0 && loadedSolutions.length > 0) {
+        setEmailLogs(generateMockEmailLogs(loadedCampaigns, loadedSolutions));
     }
   }, []);
 

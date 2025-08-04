@@ -72,8 +72,8 @@ export function LeadProfilingForm({ solutions, onProfileSave, editingProfile, on
     }
   }, [state]);
 
-  const handleSolutionChange = (value: string) => {
-    const solution = solutions.find((s) => s.name === value);
+  const handleSolutionChange = (solutionId: string) => {
+    const solution = solutions.find((s) => s.id === solutionId);
     if (solution) {
       setDescription(solution.description);
     } else {
@@ -111,7 +111,7 @@ export function LeadProfilingForm({ solutions, onProfileSave, editingProfile, on
               </SelectTrigger>
               <SelectContent>
                 {solutions.map((solution) => (
-                  <SelectItem key={solution.name} value={solution.name}>
+                  <SelectItem key={solution.id} value={solution.id}>
                     {solution.name}
                   </SelectItem>
                 ))}

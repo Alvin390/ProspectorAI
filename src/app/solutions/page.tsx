@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, MoreHorizontal } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -20,13 +20,19 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
   SheetDescription,
   SheetFooter,
-  SheetClose,
 } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -35,17 +41,23 @@ import { initialSolutions, type Solution } from './data';
 import { useToast } from '@/hooks/use-toast';
 
 export default function SolutionsPage() {
-  const [solutions, setSolutions] = useState<Solution[]>(initialSolutions);
-  const [open, setOpen] = useState(false);
-  const [newSolution, setNewSolution] = useState<Solution>({ name: '', description: '' });
+  const [solutions, setSolutions] = useState<Solution[]>([]);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [editingSolution, setEditingSolution] = useState<Solution | null>(null);
+  const [currentSolution, setCurrentSolution] = useState<Omit<Solution, 'id'>>({ name: '', description: '' });
+
   const { toast } = useToast();
 
-  useEffect(() => {
+   useEffect(() => {
+    // Set initial state from default data first
+    setSolutions(initialSolutions);
+    
+    // Then, try to load from localStorage on the client
     const savedSolutions = localStorage.getItem('solutions');
     if (savedSolutions) {
       try {
         const parsed = JSON.parse(savedSolutions);
-        if (Array.isArray(parsed)) {
+        if (Array.isArray(parsed) && parsed.length > 0) {
             setSolutions(parsed);
         }
       } catch {
@@ -54,28 +66,85 @@ export default function SolutionsPage() {
     }
   }, []);
 
+
   useEffect(() => {
-    localStorage.setItem('solutions', JSON.stringify(solutions));
+     if (typeof window !== 'undefined') {
+        localStorage.setItem('solutions', JSON.stringify(solutions));
+    }
   }, [solutions]);
 
 
-  const handleAddSolution = () => {
-    if (newSolution.name && newSolution.description) {
-      setSolutions([...solutions, newSolution]);
-      setNewSolution({ name: '', description: '' });
-      setOpen(false);
+  const handleOpenSheet = (solution: Solution | null) => {
+    if (solution) {
+      setEditingSolution(solution);
+      setCurrentSolution({ name: solution.name, description: solution.description });
+    } else {
+      setEditingSolution(null);
+      setCurrentSolution({ name: '', description: '' });
+    }
+    setIsSheetOpen(true);
+  };
+
+  const handleDelete = (id: string) => {
+    // Prevent deleting the last solution
+    if (solutions.length <= 1) {
+        toast({
+            title: "Cannot Delete",
+            description: "You must have at least one solution.",
+            variant: "destructive",
+        });
+        return;
+    }
+    setSolutions(solutions.filter(s => s.id !== id));
+    toast({
+        title: "Solution Deleted",
+        description: "The solution has been successfully deleted.",
+        variant: "destructive"
+    })
+  }
+
+  const handleSave = () => {
+    if (!currentSolution.name || !currentSolution.description) {
+        toast({
+            title: "Missing Fields",
+            description: "Please fill out all fields to save the solution.",
+            variant: "destructive"
+        })
+        return;
+    }
+
+    if (editingSolution) {
+      // Update existing solution
+      setSolutions(solutions.map(s =>
+        s.id === editingSolution.id
+          ? { ...editingSolution, ...currentSolution }
+          : s
+      ));
       toast({
-        title: "Solution Added",
-        description: `The "${newSolution.name}" solution has been saved.`,
+          title: "Solution Updated",
+          description: "Your changes have been saved."
       })
     } else {
-        toast({
-            title: "Missing Information",
-            description: "Please provide both a name and a description for the solution.",
-            variant: "destructive",
-        })
+      // Add new solution
+      const newSolution: Solution = {
+        id: `sol-${Date.now()}`,
+        ...currentSolution,
+      };
+      setSolutions([newSolution, ...solutions]);
+      toast({
+          title: "Solution Created",
+          description: "The new solution has been saved."
+      })
     }
+    setIsSheetOpen(false);
+    setEditingSolution(null);
   };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { id, value } = e.target;
+    setCurrentSolution(prev => ({ ...prev, [id]: value }));
+  };
+
 
   return (
     <div className="grid gap-6">
@@ -88,48 +157,10 @@ export default function SolutionsPage() {
               for.
             </CardDescription>
           </div>
-          <Sheet open={open} onOpenChange={setOpen}>
-            <Button size="sm" className="gap-1" onClick={() => setOpen(true)}>
+            <Button size="sm" className="gap-1" onClick={() => handleOpenSheet(null)}>
               <PlusCircle className="h-4 w-4" />
               Add Solution
             </Button>
-            <SheetContent>
-              <SheetHeader>
-                <SheetTitle>Add New Solution</SheetTitle>
-                <SheetDescription>
-                  Describe your new software solution. This will be used by the
-                  AI to generate lead profiles.
-                </SheetDescription>
-              </SheetHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="solution-name">Solution Name</Label>
-                  <Input
-                    id="solution-name"
-                    value={newSolution.name}
-                    onChange={(e) => setNewSolution({ ...newSolution, name: e.target.value })}
-                    placeholder="e.g., LeadGen Pro"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="solution-description">Description</Label>
-                  <Textarea
-                    id="solution-description"
-                    value={newSolution.description}
-                    onChange={(e) => setNewSolution({ ...newSolution, description: e.target.value })}
-                    rows={5}
-                    placeholder="Describe what your solution does, its key features, and value proposition."
-                  />
-                </div>
-              </div>
-              <SheetFooter>
-                <SheetClose asChild>
-                  <Button variant="outline">Cancel</Button>
-                </SheetClose>
-                <Button onClick={handleAddSolution}>Save Solution</Button>
-              </SheetFooter>
-            </SheetContent>
-          </Sheet>
         </CardHeader>
         <CardContent>
           <Table>
@@ -137,21 +168,84 @@ export default function SolutionsPage() {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Description</TableHead>
+                <TableHead>
+                    <span className="sr-only">Actions</span>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {solutions.map((solution) => (
-                <TableRow key={solution.name}>
+                <TableRow key={solution.id}>
                   <TableCell className="font-medium">
                     {solution.name}
                   </TableCell>
                   <TableCell>{solution.description}</TableCell>
+                   <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreHorizontal className="h-4 w-4" />
+                          <span className="sr-only">More actions</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => handleOpenSheet(solution)}>
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleDelete(solution.id)}
+                          className="text-red-500 focus:text-red-500"
+                        >
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
+      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>{editingSolution ? 'Edit Solution' : 'Add New Solution'}</SheetTitle>
+            <SheetDescription>
+              {editingSolution 
+                ? 'Modify the details of your software solution.' 
+                : 'Describe your new software solution. This will be used by the AI.'
+              }
+            </SheetDescription>
+          </SheetHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="name">Solution Name</Label>
+              <Input
+                id="name"
+                value={currentSolution.name}
+                onChange={handleInputChange}
+                placeholder="e.g., LeadGen Pro"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={currentSolution.description}
+                onChange={handleInputChange}
+                rows={5}
+                placeholder="Describe what your solution does, its key features, and value proposition."
+              />
+            </div>
+          </div>
+          <SheetFooter>
+              <Button variant="outline" onClick={() => setIsSheetOpen(false)}>Cancel</Button>
+              <Button onClick={handleSave}>Save Solution</Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

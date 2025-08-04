@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Phone, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 import type { Campaign } from '@/app/campaigns/page';
+import { type Solution, initialSolutions } from '@/app/solutions/data';
 
 interface CallLog {
   id: string;
@@ -32,10 +33,13 @@ interface CallLog {
   timestamp: string;
 }
 
-const generateMockCallLogs = (campaigns: Campaign[]): CallLog[] => {
-    if (campaigns.length === 0) return [];
+const generateMockCallLogs = (campaigns: Campaign[], solutions: Solution[]): CallLog[] => {
+    if (campaigns.length === 0 || solutions.length === 0) return [];
+    
     const activeCampaigns = campaigns.filter(c => c.status === 'Active');
     if (activeCampaigns.length === 0) return [];
+
+    const getSolutionName = (id: string) => solutions.find(s => s.id === id)?.name || 'Unknown Campaign';
 
     const logs: CallLog[] = [];
     
@@ -45,7 +49,7 @@ const generateMockCallLogs = (campaigns: Campaign[]): CallLog[] => {
                 {
                     id: `call-${campaign.id}-1`,
                     campaignId: campaign.id,
-                    campaignName: campaign.solutionName,
+                    campaignName: getSolutionName(campaign.solutionId),
                     leadIdentifier: 'contact@innovateinc.com',
                     status: 'Meeting Booked',
                     summary: 'Lead was very interested in the AI discovery tool. Scheduled a demo for next Tuesday.',
@@ -54,7 +58,7 @@ const generateMockCallLogs = (campaigns: Campaign[]): CallLog[] => {
                 {
                     id: `call-${campaign.id}-2`,
                     campaignId: campaign.id,
-                    campaignName: campaign.solutionName,
+                    campaignName: getSolutionName(campaign.solutionId),
                     leadIdentifier: 'info@synergycorp.io',
                     status: 'Not Interested',
                     summary: 'Reason: Already using a competitor solution and satisfied with it.',
@@ -63,7 +67,7 @@ const generateMockCallLogs = (campaigns: Campaign[]): CallLog[] => {
                 {
                     id: `call-${campaign.id}-3`,
                     campaignId: campaign.id,
-                    campaignName: campaign.solutionName,
+                    campaignName: getSolutionName(campaign.solutionId),
                     leadIdentifier: 'jane.doe@techstart.co',
                     status: 'Not Interested',
                     summary: 'Reason: Budget constraints for new software this quarter.',
@@ -74,7 +78,7 @@ const generateMockCallLogs = (campaigns: Campaign[]): CallLog[] => {
              logs.push({
                 id: `call-${campaign.id}-1`,
                 campaignId: campaign.id,
-                campaignName: campaign.solutionName,
+                campaignName: getSolutionName(campaign.solutionId),
                 leadIdentifier: 'pm@solutions.llc',
                 status: 'Follow-up Required',
                 summary: 'Lead was busy, asked to call back next week.',
@@ -89,21 +93,29 @@ const generateMockCallLogs = (campaigns: Campaign[]): CallLog[] => {
 
 export default function CallingPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [solutions, setSolutions] = useState<Solution[]>([]);
   const [callLogs, setCallLogs] = useState<CallLog[]>([]);
 
   useEffect(() => {
+    // Load campaigns
     const campaignsFromStorage = localStorage.getItem('campaigns');
-    if (campaignsFromStorage) {
-        try {
-            const parsedCampaigns = JSON.parse(campaignsFromStorage);
-            if (Array.isArray(parsedCampaigns)) {
-                setCampaigns(parsedCampaigns);
-                setCallLogs(generateMockCallLogs(parsedCampaigns));
-            }
-        } catch (error) {
-            console.error("Failed to parse campaigns from localStorage", error);
-        }
+    const loadedCampaigns = campaignsFromStorage ? JSON.parse(campaignsFromStorage) : [];
+    if (Array.isArray(loadedCampaigns)) {
+        setCampaigns(loadedCampaigns);
     }
+    
+    // Load solutions
+    const solutionsFromStorage = localStorage.getItem('solutions');
+    const loadedSolutions = solutionsFromStorage ? JSON.parse(solutionsFromStorage) : initialSolutions;
+     if (Array.isArray(loadedSolutions)) {
+        setSolutions(loadedSolutions);
+    }
+
+    // Generate logs once both are loaded
+    if(loadedCampaigns.length > 0 && loadedSolutions.length > 0) {
+        setCallLogs(generateMockCallLogs(loadedCampaigns, loadedSolutions));
+    }
+
   }, []);
 
   const getStatusIcon = (status: CallLog['status']) => {

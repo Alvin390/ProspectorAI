@@ -29,7 +29,7 @@ import { type Profile, initialProfiles } from '@/app/leads/data';
 
 export interface Campaign {
   id: string;
-  solutionName: string;
+  solutionId: string;
   leadProfileId: string;
   emailScript: string;
   callScript: string;
@@ -126,9 +126,10 @@ export default function CampaignsPage() {
                   variant: 'destructive',
               });
           } else {
+               const solution = solutions.find(s => s.id === newCampaign.solutionId);
                toast({
                   title: 'Orchestrator Started!',
-                  description: `Campaign "${newCampaign.solutionName}" is now being managed by the AI.`,
+                  description: `Campaign "${solution?.name}" is now being managed by the AI.`,
               });
           }
       });
@@ -139,6 +140,7 @@ export default function CampaignsPage() {
   const toggleCampaignStatus = (campaign: Campaign) => {
     const newStatus = campaign.status === 'Active' ? 'Paused' : 'Active';
     const updatedCampaign = { ...campaign, status: newStatus };
+    const solution = solutions.find(s => s.id === campaign.solutionId);
 
     setCampaigns(campaigns.map(c => 
       c.id === campaign.id ? updatedCampaign : c
@@ -156,7 +158,7 @@ export default function CampaignsPage() {
             } else {
                  toast({
                     title: 'Orchestrator Started!',
-                    description: `Campaign "${campaign.solutionName}" is now being managed by the AI.`,
+                    description: `Campaign "${solution?.name}" is now being managed by the AI.`,
                 });
             }
         });
@@ -177,6 +179,11 @@ export default function CampaignsPage() {
     return profile ? profile.name : 'Unknown Profile';
   }
 
+  const getSolutionNameById = (id: string) => {
+    const solution = solutions.find(s => s.id === id);
+    return solution ? solution.name : 'Unknown Solution';
+  }
+
   return (
     <Tabs value={activeTab} onValueChange={(value) => {
         if (value !== 'create') {
@@ -193,7 +200,7 @@ export default function CampaignsPage() {
       <TabsContent value="create">
         <Card>
           <CardHeader>
-            <CardTitle>{editingCampaign ? `Editing: ${editingCampaign.solutionName}` : 'AI Campaign Creator'}</CardTitle>
+            <CardTitle>{editingCampaign ? `Editing: ${getSolutionNameById(editingCampaign.solutionId)}` : 'AI Campaign Creator'}</CardTitle>
             <CardDescription>
               {editingCampaign 
                 ? 'Update the details of your campaign below.'
@@ -234,7 +241,7 @@ export default function CampaignsPage() {
                 {campaigns.map((campaign) => (
                   <TableRow key={campaign.id}>
                     <TableCell className="font-medium">
-                      {campaign.solutionName}
+                      {getSolutionNameById(campaign.solutionId)}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {getProfileNameById(campaign.leadProfileId)}

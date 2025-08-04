@@ -70,7 +70,7 @@ export async function handleGenerateCampaignContent(
   formData: FormData
 ): Promise<CampaignContentFormState> {
   const schema = z.object({
-    solutionName: z.string().min(1, 'Please select a solution'),
+    solutionId: z.string().min(1, 'Please select a solution'),
     leadProfileId: z.string().min(1, 'Please select a lead profile'),
     solutions: z.string(),
     profiles: z.string(),
@@ -78,7 +78,7 @@ export async function handleGenerateCampaignContent(
 
   try {
     const validated = schema.parse({
-      solutionName: formData.get('solutionName'),
+      solutionId: formData.get('solutionId'),
       leadProfileId: formData.get('leadProfileId'),
       solutions: formData.get('solutions'),
       profiles: formData.get('profiles'),
@@ -87,7 +87,7 @@ export async function handleGenerateCampaignContent(
     const solutions: Solution[] = JSON.parse(validated.solutions);
     const profiles: Profile[] = JSON.parse(validated.profiles);
     
-    const solution = solutions.find(s => s.name === validated.solutionName);
+    const solution = solutions.find(s => s.id === validated.solutionId);
     if (!solution) {
       return { message: 'error', data: null, error: 'Selected solution not found.' };
     }
@@ -202,7 +202,7 @@ const mockLeads = [
 ];
 
 export async function handleRunOrchestrator(campaign: Campaign, solutions: Solution[], profiles: Profile[]): Promise<OrchestratorState> {
-    const solution = solutions.find(s => s.name === campaign.solutionName);
+    const solution = solutions.find(s => s.id === campaign.solutionId);
     if (!solution) {
         return { message: 'error', error: 'Solution definition not found for this campaign.' };
     }
