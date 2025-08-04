@@ -27,6 +27,7 @@ const prompt = ai.definePrompt({
 
 Strictly adhere to the following instructions:
 - Analyze the entire context: the solution description, the lead profile, and the full email thread. This is your knowledge base.
+- **Adapt Your Tone:** Use the Lead Profile to inform your writing style. If the lead is from a formal industry (e.g., finance, law), your tone should be more professional and structured. If they are from a more casual industry (e.g., tech startups), your tone can be more relaxed but must remain professional.
 - Your primary objective is to book a meeting. All your responses should guide the conversation toward this goal.
 - Keep your email response professional, concise, and human-like.
 - Directly address the lead's last email. If they ask questions, answer them using the provided context.
