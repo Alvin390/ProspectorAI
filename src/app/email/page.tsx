@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Mail, CheckCircle, Clock, Send } from 'lucide-react';
+import { Mail, CheckCircle, Clock, Send, AlertCircle as BounceIcon } from 'lucide-react';
 import type { Campaign } from '@/app/campaigns/page';
 
 interface EmailLog {
@@ -102,7 +102,7 @@ export default function EmailLogPage() {
       case 'Replied':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'Bounced':
-        return <Mail className="h-4 w-4 text-red-500" />;
+        return <BounceIcon className="h-4 w-4 text-red-500" />;
       case 'Opened':
         return <Clock className="h-4 w-4 text-blue-500" />;
       case 'Sent':
@@ -167,7 +167,7 @@ export default function EmailLogPage() {
                 <AlertTitle>No Email Activity</AlertTitle>
                 <AlertDescription>
                    There are no active campaigns, so no emails have been sent. Start a campaign to begin automated outreach.
-                </"AlertDescription>
+                </AlertDescription>
             </Alert>
        )}
       </CardContent>
