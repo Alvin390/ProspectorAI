@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { handleGenerateLeadProfile } from '@/app/actions';
 import { Terminal } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import type { Solution } from '@/app/solutions/page';
 
 const initialState = {
   message: '',
@@ -24,17 +34,57 @@ function SubmitButton() {
   );
 }
 
-export function LeadProfilingForm() {
+interface LeadProfilingFormProps {
+  solutions: Solution[];
+}
+
+export function LeadProfilingForm({ solutions }: LeadProfilingFormProps) {
   const [state, formAction] = useActionState(handleGenerateLeadProfile, initialState);
+  const [selectedSolution, setSelectedSolution] = useState('');
+
+  const handleSolutionChange = (value: string) => {
+    const solution = solutions.find((s) => s.name === value);
+    if (solution) {
+      setSelectedSolution(solution.description);
+    } else {
+      setSelectedSolution('');
+    }
+  };
 
   return (
     <div className="space-y-6">
       <form action={formAction} className="space-y-4">
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="solution">Select a Solution (Optional)</Label>
+            <Select name="solution" onValueChange={handleSolutionChange}>
+              <SelectTrigger id="solution">
+                <SelectValue placeholder="Select a solution..." />
+              </SelectTrigger>
+              <SelectContent>
+                {solutions.map((solution) => (
+                  <SelectItem key={solution.name} value={solution.name}>
+                    {solution.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="or-divider">Or</Label>
+            <p className="text-sm text-muted-foreground pt-2">
+              Describe your ideal customer directly.
+            </p>
+          </div>
+        </div>
+
         <Textarea
           name="description"
           placeholder="e.g., B2B SaaS companies in the fintech sector with annual revenue over $10M and using HubSpot..."
           rows={4}
           required
+          value={selectedSolution}
+          onChange={(e) => setSelectedSolution(e.target.value)}
         />
         <SubmitButton />
       </form>

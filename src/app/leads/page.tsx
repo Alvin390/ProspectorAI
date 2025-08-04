@@ -1,3 +1,4 @@
+
 import {
   Card,
   CardContent,
@@ -15,6 +16,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { LeadProfilingForm } from './lead-profiling-form';
+import { solutions } from '@/app/solutions/page';
 
 const pastProfiles = [
   {
@@ -44,12 +46,12 @@ export default function LeadProfilingPage() {
         <CardHeader>
           <CardTitle>AI-Powered Lead Profiling</CardTitle>
           <CardDescription>
-            Describe your ideal customer, and our AI will generate a detailed
+            Select one of your solutions or describe your ideal customer, and our AI will generate a detailed
             profile to help you find the perfect leads.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <LeadProfilingForm />
+          <LeadProfilingForm solutions={solutions} />
         </CardContent>
       </Card>
       <Card>

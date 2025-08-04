@@ -1,3 +1,4 @@
+
 import {
   Card,
   CardContent,
@@ -16,7 +17,12 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
-const solutions = [
+export interface Solution {
+    name: string;
+    description: string;
+}
+
+export const solutions: Solution[] = [
     {
         name: "ProspectorAI",
         description: "AI-powered lead builder and discovery tool to define target personas, optimizing for fit and conversion.",
