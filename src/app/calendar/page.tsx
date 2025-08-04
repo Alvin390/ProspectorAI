@@ -58,7 +58,7 @@ export default function CalendarPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {upcomingMeetings.map((meeting, index) => (
-              <React.Fragment key={index}>
+              <div key={index}>
                 <div className="flex flex-col space-y-1.5">
                     <div className='flex justify-between items-center'>
                         <h3 className="font-semibold">{meeting.lead}</h3>
@@ -68,7 +68,7 @@ export default function CalendarPage() {
                      <Button variant="outline" size="sm">View Briefing</Button>
                 </div>
                 {index < upcomingMeetings.length - 1 && <Separator className="my-4" />}
-              </React.Fragment>
+              </div>
             ))}
           </CardContent>
         </Card>
