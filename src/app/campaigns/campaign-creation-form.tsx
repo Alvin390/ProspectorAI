@@ -27,6 +27,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { Solution } from '@/app/solutions/data';
 import type { GenerateCampaignContentOutput } from '@/ai/flows/generate-campaign-content.schema';
 import type { Campaign } from './page';
+import type { Profile } from '@/app/leads/page';
 
 const initialState = {
   message: '',
@@ -45,12 +46,13 @@ function SubmitButton({ disabled }: { disabled?: boolean }) {
 
 interface CampaignCreationFormProps {
     solutions: Solution[];
+    profiles: Profile[];
     onCampaignSubmit: (campaignData: Omit<Campaign, 'id' | 'status'>) => void;
     editingCampaign: Campaign | null;
     clearEditing: () => void;
 }
 
-export function CampaignCreationForm({ solutions, onCampaignSubmit, editingCampaign, clearEditing }: CampaignCreationFormProps) {
+export function CampaignCreationForm({ solutions, profiles, onCampaignSubmit, editingCampaign, clearEditing }: CampaignCreationFormProps) {
   const [state, formAction] = useActionState(handleGenerateCampaignContent, initialState);
   const { toast } = useToast();
   const [emailScript, setEmailScript] = useState('');
@@ -161,6 +163,7 @@ export function CampaignCreationForm({ solutions, onCampaignSubmit, editingCampa
   return (
     <div className="space-y-6">
       <form action={formAction} ref={formRef} className="space-y-4">
+        <input type="hidden" name="solutions" value={JSON.stringify(solutions)} />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
                 <Label htmlFor="solution">Solution</Label>
@@ -182,15 +185,9 @@ export function CampaignCreationForm({ solutions, onCampaignSubmit, editingCampa
                     <SelectValue placeholder="Select a lead profile" />
                 </SelectTrigger>
                 <SelectContent>
-                    <SelectItem value="Tech startups in Silicon Valley">
-                    Tech startups in Silicon Valley
-                    </SelectItem>
-                    <SelectItem value="E-commerce businesses in Europe">
-                    E-commerce businesses in Europe
-                    </SelectItem>
-                    <SelectItem value="Financial services companies in New York">
-                    Financial services companies in New York
-                    </SelectItem>
+                    {profiles.map(profile => (
+                        <SelectItem key={profile.id} value={profile.description}>{profile.description}</SelectItem>
+                    ))}
                 </SelectContent>
                 </Select>
             </div>

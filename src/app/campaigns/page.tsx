@@ -25,6 +25,7 @@ import { CampaignCreationForm } from './campaign-creation-form';
 import { handleRunOrchestrator } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { type Solution, initialSolutions } from '@/app/solutions/data';
+import { type Profile, initialProfiles } from '@/app/leads/page';
 
 export interface Campaign {
   id: string;
@@ -70,6 +71,7 @@ export default function CampaignsPage() {
     return initialCampaigns;
   });
   const [solutions, setSolutions] = useState<Solution[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [activeTab, setActiveTab] = useState('tracker');
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -93,6 +95,18 @@ export default function CampaignsPage() {
             }
         } else {
             setSolutions(initialSolutions);
+        }
+
+        const savedProfiles = localStorage.getItem('profiles');
+         if (savedProfiles) {
+            try {
+                const parsed = JSON.parse(savedProfiles);
+                setProfiles(Array.isArray(parsed) ? parsed : initialProfiles);
+            } catch {
+                setProfiles(initialProfiles);
+            }
+        } else {
+            setProfiles(initialProfiles);
         }
     }
   }, []);
@@ -118,7 +132,7 @@ export default function CampaignsPage() {
       setCampaigns((prev) => [newCampaign, ...prev]);
 
       startTransition(async () => {
-          const result = await handleRunOrchestrator(newCampaign);
+          const result = await handleRunOrchestrator(newCampaign, solutions);
           if (result.message === 'error') {
               toast({
                   title: 'Orchestrator Failed',
@@ -138,13 +152,15 @@ export default function CampaignsPage() {
 
   const toggleCampaignStatus = (campaign: Campaign) => {
     const newStatus = campaign.status === 'Active' ? 'Paused' : 'Active';
+    const updatedCampaign = { ...campaign, status: newStatus };
+
     setCampaigns(campaigns.map(c => 
-      c.id === campaign.id ? { ...c, status: newStatus } : c
+      c.id === campaign.id ? updatedCampaign : c
     ));
 
     if (newStatus === 'Active') {
         startTransition(async () => {
-            const result = await handleRunOrchestrator(campaign);
+            const result = await handleRunOrchestrator(updatedCampaign, solutions);
              if (result.message === 'error') {
               toast({
                   title: 'Orchestrator Failed',
@@ -197,6 +213,7 @@ export default function CampaignsPage() {
           <CardContent>
             <CampaignCreationForm 
               solutions={solutions}
+              profiles={profiles}
               onCampaignSubmit={handleCampaignSubmit} 
               editingCampaign={editingCampaign}
               clearEditing={clearEditing}
