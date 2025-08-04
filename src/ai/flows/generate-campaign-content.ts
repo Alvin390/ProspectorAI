@@ -1,8 +1,11 @@
+
 'use server';
 
-// The AI campaign generator flow.
-//
-// - generateCampaignContent - A function that generates personalized email and call scripts for a multi-channel outreach campaign.
+/**
+ * @fileOverview The AI campaign generator flow.
+ * 
+ * - generateCampaignContent - A function that generates personalized email and call scripts for a multi-channel outreach campaign.
+ */
 
 import {ai} from '@/ai/genkit';
 import {
@@ -23,14 +26,33 @@ const prompt = ai.definePrompt({
   name: 'generateCampaignContentPrompt',
   input: {schema: GenerateCampaignContentInputSchema},
   output: {schema: GenerateCampaignContentOutputSchema},
-  prompt: `You are an AI assistant specializing in generating personalized outreach campaign content.
+  prompt: `You are an expert AI copywriter specializing in high-conversion sales outreach. Your task is to create a compelling, personalized outreach sequence for a potential lead.
 
-  Based on the provided software solution description and lead profile, create an engaging email script and a concise call script.
+You will be given a description of the software solution being offered and a detailed profile of the target lead.
 
-  Solution Description: {{{solutionDescription}}}
-  Lead Profile: {{{leadProfile}}}
+Your output must be a JSON object containing two distinct, ready-to-use scripts: 'emailScript' and 'callScript'.
 
-  Generate the email and call scripts based on this information.
+**Instructions:**
+1.  **Email Script:**
+    *   Craft a concise, engaging, and personalized email.
+    *   The subject line must be attention-grabbing and relevant.
+    *   The body should immediately establish relevance to the lead's role or company, reference a likely pain point (inferred from their profile), and briefly introduce the solution as a potential remedy.
+    *   End with a clear, low-friction call-to-action, like asking a question to gauge interest, not immediately asking for a meeting.
+2.  **Call Script:**
+    *   Write a short, professional, and friendly script for an initial cold call.
+    *   It should include a clear opening, a brief value proposition directly tied to the lead's profile, and a question to open the conversation.
+    *   This is the script the AI agent will use as its opening statement for an automated call.
+
+**Context:**
+---
+**Software Solution Description:**
+{{{solutionDescription}}}
+---
+**Lead Profile:**
+{{{leadProfile}}}
+---
+
+Based on the provided context, generate the 'emailScript' and 'callScript'.
   `,
 });
 
