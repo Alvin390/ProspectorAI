@@ -1,6 +1,6 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState, useFormStatus } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,7 +24,7 @@ function SubmitButton() {
 }
 
 export function LeadProfilingForm() {
-  const [state, formAction] = useFormState(handleGenerateLeadProfile, initialState);
+  const [state, formAction] = useActionState(handleGenerateLeadProfile, initialState);
 
   return (
     <div className="space-y-6">

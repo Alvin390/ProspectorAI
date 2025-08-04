@@ -1,6 +1,6 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState, useFormStatus } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import {
@@ -39,7 +39,7 @@ function SubmitButton() {
 }
 
 export function CampaignCreationForm() {
-  const [state, formAction] = useFormState(handleGenerateCampaignContent, initialState);
+  const [state, formAction] = useActionState(handleGenerateCampaignContent, initialState);
   const { toast } = useToast();
 
   const copyToClipboard = (text: string, type: string) => {
