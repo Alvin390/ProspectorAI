@@ -21,7 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Mail, CheckCircle, Clock, Send, AlertCircle as BounceIcon } from 'lucide-react';
 import type { Campaign } from '@/app/campaigns/page';
-import { type Solution, initialSolutions } from '@/app/solutions/data';
+import { type Solution } from '@/app/solutions/data';
 
 interface EmailLog {
   id: string;
@@ -39,57 +39,59 @@ const generateMockEmailLogs = (campaigns: Campaign[], solutions: Solution[]): Em
     const activeCampaigns = campaigns.filter(c => c.status === 'Active');
     if (activeCampaigns.length === 0) return [];
 
-    const getSolutionName = (id: string) => solutions.find(s => s.id === id)?.name || 'Unknown Campaign';
+    const getSolutionName = (id: string) => solutions.find(s => s.id === id)?.name || 'Unknown Solution';
 
     const logs: EmailLog[] = [];
     
-    if (activeCampaigns.length > 0) {
-        const campaign = activeCampaigns[0];
-        logs.push(
-            {
-                id: 'email-1',
-                campaignId: campaign.id,
-                campaignName: getSolutionName(campaign.solutionId),
-                leadIdentifier: 'contact@innovateinc.com',
-                status: 'Replied',
-                subject: 'Re: AI Discovery Tool',
-                timestamp: '1 hour ago'
-            },
-            {
-                id: 'email-2',
-                campaignId: campaign.id,
-                campaignName: getSolutionName(campaign.solutionId),
-                leadIdentifier: 'info@synergycorp.io',
-                status: 'Opened',
-                subject: 'Your request for info',
-                timestamp: '4 hours ago'
-            },
-            {
-                id: 'email-4',
-                campaignId: campaign.id,
-                campaignName: getSolutionName(campaign.solutionId),
-                leadIdentifier: 'jane.doe@techstart.co',
-                status: 'Bounced',
-                subject: 'Quick question',
-                timestamp: '2 days ago'
-            }
-        );
-    }
-    
-    if (activeCampaigns.length > 1) {
-        const campaign = activeCampaigns[1];
-        logs.push({
-            id: 'email-3',
-            campaignId: campaign.id,
-            campaignName: getSolutionName(campaign.solutionId),
-            leadIdentifier: 'pm@solutions.llc',
-            status: 'Sent',
-            subject: 'Following up',
-            timestamp: 'Yesterday'
-        });
-    }
+    activeCampaigns.forEach((campaign, index) => {
+        if(index === 0) { // For the first active campaign
+             logs.push(
+                {
+                    id: `email-${campaign.id}-1`,
+                    campaignId: campaign.id,
+                    campaignName: getSolutionName(campaign.solutionId),
+                    leadIdentifier: 'contact@innovateinc.com',
+                    status: 'Replied',
+                    subject: 'Re: AI Discovery Tool',
+                    timestamp: '1 hour ago'
+                },
+                {
+                    id: `email-${campaign.id}-2`,
+                    campaignId: campaign.id,
+                    campaignName: getSolutionName(campaign.solutionId),
+                    leadIdentifier: 'info@synergycorp.io',
+                    status: 'Opened',
+                    subject: 'Your request for info',
+                    timestamp: '4 hours ago'
+                }
+            );
+        }
+        
+        if (index === 1) { // For the second active campaign
+             logs.push(
+                {
+                    id: `email-${campaign.id}-1`,
+                    campaignId: campaign.id,
+                    campaignName: getSolutionName(campaign.solutionId),
+                    leadIdentifier: 'pm@solutions.llc',
+                    status: 'Sent',
+                    subject: 'Following up',
+                    timestamp: 'Yesterday'
+                },
+                 {
+                    id: `email-${campaign.id}-2`,
+                    campaignId: campaign.id,
+                    campaignName: getSolutionName(campaign.solutionId),
+                    leadIdentifier: 'jane.doe@techstart.co',
+                    status: 'Bounced',
+                    subject: 'Quick question',
+                    timestamp: '2 days ago'
+                }
+            );
+        }
+    });
 
-    return logs;
+    return logs.sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 }
 
 
@@ -100,20 +102,15 @@ export default function EmailLogPage() {
 
   useEffect(() => {
     const campaignsFromStorage = localStorage.getItem('campaigns');
-    const loadedCampaigns = campaignsFromStorage ? JSON.parse(campaignsFromStorage) : [];
-     if (Array.isArray(loadedCampaigns)) {
-        setCampaigns(loadedCampaigns);
-    }
-
     const solutionsFromStorage = localStorage.getItem('solutions');
-    const loadedSolutions = solutionsFromStorage ? JSON.parse(solutionsFromStorage) : initialSolutions;
-     if (Array.isArray(loadedSolutions)) {
-        setSolutions(loadedSolutions);
-    }
 
-    if (loadedCampaigns.length > 0 && loadedSolutions.length > 0) {
-        setEmailLogs(generateMockEmailLogs(loadedCampaigns, loadedSolutions));
-    }
+    const loadedCampaigns = campaignsFromStorage ? JSON.parse(campaignsFromStorage) : [];
+    const loadedSolutions = solutionsFromStorage ? JSON.parse(solutionsFromStorage) : [];
+
+    setCampaigns(loadedCampaigns);
+    setSolutions(loadedSolutions);
+    
+    setEmailLogs(generateMockEmailLogs(loadedCampaigns, loadedSolutions));
   }, []);
 
   const getStatusIcon = (status: EmailLog['status']) => {
@@ -148,7 +145,7 @@ export default function EmailLogPage() {
       <CardHeader>
         <CardTitle>Email Outreach Log</CardTitle>
         <CardDescription>
-          An automated log of all outreach emails sent by the AI.
+         A real-time log of all outreach emails sent by the AI. This log is updated as the AI works through its campaign tasks.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -183,9 +180,9 @@ export default function EmailLogPage() {
        ) : (
             <Alert>
                 <Mail className="h-4 w-4" />
-                <AlertTitle>No Email Activity</AlertTitle>
+                <AlertTitle>No Email Activity Yet</AlertTitle>
                 <AlertDescription>
-                   There are no active campaigns, so no emails have been sent. Start a campaign to begin automated outreach.
+                  Once an active campaign begins sending emails, the activity will appear here in real-time. Start a new campaign on the Campaigns page to begin.
                 </AlertDescription>
             </Alert>
        )}

@@ -115,12 +115,12 @@ export default function OrchestrationPage() {
       <CardHeader>
         <CardTitle>AI Orchestration Control Center</CardTitle>
         <CardDescription>
-          Monitor the autonomous outreach plans for your active campaigns. The AI runs these campaigns automatically.
+          This is your control center to monitor the AI's autonomous work. The AI runs campaigns on its own. Use this page to see the AI's high-level strategic plan. For detailed, real-time activity logs, see the Calling and Email pages.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-2">
-            <Label htmlFor="campaign-select">Select an Active Campaign</Label>
+            <Label htmlFor="campaign-select">Select an Active Campaign to View its Plan</Label>
             <div className="flex items-center gap-2">
                 <Select value={selectedCampaignId} onValueChange={setSelectedCampaignId} disabled={activeCampaigns.length === 0}>
                     <SelectTrigger id="campaign-select" className="flex-1">
@@ -142,8 +142,8 @@ export default function OrchestrationPage() {
              <div className="space-y-4">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Live Outreach Plan</CardTitle>
-                        <CardDescription>The AI has determined the following next steps for this campaign. This view is updated when you refresh.</CardDescription>
+                        <CardTitle>Live Strategic Plan</CardTitle>
+                        <CardDescription>The AI has determined the following next steps for this campaign. This is a snapshot of the AI's current strategy.</CardDescription>
                     </CardHeader>
                     <CardContent>
                        <Table>
@@ -179,7 +179,7 @@ export default function OrchestrationPage() {
                 <Bot className="h-4 w-4" />
                 <AlertTitle>No Plan Generated</AlertTitle>
                 <AlertDescription>
-                    Select an active campaign and click "Show/Refresh Plan" for the AI to display its outreach strategy. The AI is working in the background if a campaign is active.
+                    Select an active campaign and click "Show/Refresh Plan" to see the AI's current strategic outreach plan. The AI is working in the background if a campaign is active; check the Calling and Email pages for activity logs.
                 </AlertDescription>
             </Alert>
         )}
