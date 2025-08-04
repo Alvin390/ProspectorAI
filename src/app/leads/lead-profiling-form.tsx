@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState, useState, useEffect } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { Solution } from '@/app/solutions/data';
+import type { GenerateLeadProfileOutput } from '@/ai/flows/generate-lead-profile.schema';
 
 const initialState = {
   message: '',
@@ -36,11 +37,21 @@ function SubmitButton() {
 
 interface LeadProfilingFormProps {
   solutions: Solution[];
+  onProfileGenerated: (description: string, data: GenerateLeadProfileOutput) => void;
+  editingDescription?: string;
 }
 
-export function LeadProfilingForm({ solutions }: LeadProfilingFormProps) {
+export function LeadProfilingForm({ solutions, onProfileGenerated, editingDescription }: LeadProfilingFormProps) {
   const [state, formAction] = useActionState(handleGenerateLeadProfile, initialState);
-  const [description, setDescription] = useState('');
+  const [description, setDescription] = useState(editingDescription || '');
+  
+  useEffect(() => {
+    if (state.data && state.message === 'success') {
+      const currentDescription = (document.querySelector('[name="description"]') as HTMLInputElement)?.value;
+      onProfileGenerated(currentDescription, state.data);
+    }
+    // We don't need to show a toast here as the parent component will update the list
+  }, [state, onProfileGenerated]);
 
   const handleSolutionChange = (value: string) => {
     const solution = solutions.find((s) => s.name === value);
@@ -97,7 +108,7 @@ export function LeadProfilingForm({ solutions }: LeadProfilingFormProps) {
         </Alert>
       )}
 
-      {state.data && (
+      {state.data && state.message === 'success' && (
         <div className="grid gap-4 md:grid-cols-2">
           <Card>
             <CardHeader>
