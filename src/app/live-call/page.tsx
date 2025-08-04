@@ -7,7 +7,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -30,7 +29,6 @@ import { handleConversationalCall } from '@/app/actions';
 import type { Campaign } from '@/app/campaigns/page';
 import type { Profile } from '@/app/leads/data';
 import type { Solution } from '@/app/solutions/data';
-import type { OutreachOrchestratorOutput } from '@/ai/flows/outreach-orchestrator.schema';
 import type { ConversationalCallOutput } from '@/ai/flows/conversational-call.schema';
 
 interface Message {
@@ -65,7 +63,7 @@ function SubmitButton() {
 }
 
 export default function LiveCallPage() {
-  const [state, formAction, isPending] = useActionState(handleConversationalCall, initialState);
+  const [state, formAction] = useActionState(handleConversationalCall, initialState);
   
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [solutions, setSolutions] = useState<Solution[]>([]);
@@ -103,6 +101,7 @@ export default function LiveCallPage() {
   useEffect(() => {
     if (state.message === 'success' && state.data) {
         const aiResponse: ConversationalCallOutput = state.data;
+        // Only add the AI response here. The user response is added optimistically.
         setConversation(prev => [
             ...prev,
             { role: 'model', text: aiResponse.responseText, audio: aiResponse.audioResponse }
@@ -114,6 +113,11 @@ export default function LiveCallPage() {
         }
     }
     // Handle error case if needed
+    if (state.message === 'error') {
+        // Optionally remove the optimistic user message if the call fails
+        // For now, we'll leave it to show the attempt.
+        console.error("Server Action Error:", state.error);
+    }
   }, [state]);
 
   useEffect(() => {
@@ -135,11 +139,12 @@ export default function LiveCallPage() {
   const handleFormSubmit = (formData: FormData) => {
     const userResponse = formData.get('userResponse') as string;
     if (userResponse) {
+        // Optimistically update the UI with the user's message
         setConversation(prev => [...prev, { role: 'user', text: userResponse }]);
         
-        // We need to manually add the latest user response to the history for the action
-        const currentConversation = [...conversation, { role: 'user', text: userResponse }];
-        formData.set('conversationHistory', JSON.stringify(currentConversation));
+        // Pass the *new* conversation history to the action
+        const newConversation = [...conversation, { role: 'user', text: userResponse }];
+        formData.set('conversationHistory', JSON.stringify(newConversation));
         
         formAction(formData);
         formRef.current?.reset();
@@ -243,27 +248,14 @@ export default function LiveCallPage() {
                         <input type="hidden" name="solutionDescription" value={selectedSolution?.description || ''} />
                         <input type="hidden" name="leadProfile" value={leadProfileString} />
                         <input type="hidden" name="callScript" value={selectedCampaign?.callScript || ''} />
-                        <input type="hidden" name="conversationHistory" value={JSON.stringify(conversation)} />
+                        {/* The conversationHistory is now set dynamically in handleFormSubmit */}
                         
                         <Input
                             name="userResponse"
                             placeholder="Type the lead's response here..."
                             autoComplete="off"
-                            disabled={isPending}
                         />
-                        <Button type="submit" disabled={isPending}>
-                            {isPending ? (
-                                <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Sending...
-                                </>
-                            ) : (
-                                <>
-                                <Send className="mr-2 h-4 w-4" />
-                                Send Response
-                                </>
-                            )}
-                        </Button>
+                        <SubmitButton />
                     </form>
                 </>
             ) : (
@@ -280,3 +272,5 @@ export default function LiveCallPage() {
     </div>
   );
 }
+
+    
