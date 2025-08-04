@@ -22,7 +22,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { CampaignCreationForm } from './campaign-creation-form';
-import type { GenerateCampaignContentOutput } from '@/ai/flows/generate-campaign-content';
 
 export interface Campaign {
   id: string;
@@ -71,12 +70,12 @@ export default function CampaignsPage() {
     } else {
       // Add new campaign
       setCampaigns((prev) => [
-        ...prev,
         {
           ...campaignData,
           id: `campaign-${Date.now()}`,
           status: 'Active',
         },
+        ...prev,
       ]);
     }
     setActiveTab('tracker');
@@ -95,10 +94,16 @@ export default function CampaignsPage() {
 
   const clearEditing = () => {
     setEditingCampaign(null);
+    setActiveTab('create');
   }
 
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="grid gap-6">
+    <Tabs value={activeTab} onValueChange={(value) => {
+        if (value === 'create' && editingCampaign) {
+            clearEditing();
+        }
+        setActiveTab(value)
+    }}>
       <div className="flex items-center">
         <TabsList>
           <TabsTrigger value="create">{editingCampaign ? 'Edit Campaign' : 'Create Campaign'}</TabsTrigger>

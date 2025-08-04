@@ -34,7 +34,7 @@ const initialState = {
   error: null,
 };
 
-function SubmitButton({ isEditing }: { isEditing: boolean }) {
+function SubmitButton() {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" disabled={pending} className="w-full md:w-auto">
@@ -63,8 +63,6 @@ export function CampaignCreationForm({ onCampaignSubmit, editingCampaign, clearE
   const [isEditing, setIsEditing] = useState(false);
 
   const formRef = useRef<HTMLFormElement>(null);
-  const solutionRef = useRef<HTMLButtonElement>(null);
-  const leadProfileRef = useRef<HTMLButtonElement>(null);
   
   const [selectedSolution, setSelectedSolution] = useState<string>('');
   const [selectedLeadProfile, setSelectedLeadProfile] = useState<string>('');
@@ -98,7 +96,14 @@ export function CampaignCreationForm({ onCampaignSubmit, editingCampaign, clearE
       setCallScript(state.data.callScript);
       setGeneratedContent(state.data);
     }
-  }, [state]);
+     if (state.message === 'error') {
+      toast({
+        title: 'Error generating content',
+        description: state.error,
+        variant: 'destructive',
+      });
+    }
+  }, [state, toast]);
 
   const copyToClipboard = (text: string, type: string) => {
     navigator.clipboard.writeText(text);
@@ -123,21 +128,26 @@ export function CampaignCreationForm({ onCampaignSubmit, editingCampaign, clearE
         description: isEditing ? "Your campaign has been successfully updated." : "Your outreach campaign is now running.",
     });
 
-    clearEditing();
-  }
-  
-  const handleFormAction = (formData: FormData) => {
-      formAction(formData);
+    if (isEditing) {
+      clearEditing();
+    } else {
+      setGeneratedContent(null);
+      setEmailScript('');
+      setCallScript('');
+      setSelectedSolution('');
+      setSelectedLeadProfile('');
+      formRef.current?.reset();
+    }
   }
 
   return (
     <div className="space-y-6">
-      <form ref={formRef} action={handleFormAction} className="space-y-4">
+      <form ref={formRef} action={formAction} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
                 <Label htmlFor="solution">Solution</Label>
-                <Select name="solution" required value={selectedSolution} onValueChange={setSelectedSolution}>
-                    <SelectTrigger id="solution" ref={solutionRef}>
+                <Select name="solution" required value={selectedSolution} onValueChange={setSelectedSolution} disabled={isEditing}>
+                    <SelectTrigger id="solution">
                         <SelectValue placeholder="Select a solution" />
                     </SelectTrigger>
                     <SelectContent>
@@ -149,8 +159,8 @@ export function CampaignCreationForm({ onCampaignSubmit, editingCampaign, clearE
             </div>
             <div className="space-y-2">
                 <Label htmlFor="lead-profile">Lead Profile</Label>
-                <Select name="leadProfile" required value={selectedLeadProfile} onValueChange={setSelectedLeadProfile}>
-                <SelectTrigger id="lead-profile" ref={leadProfileRef}>
+                <Select name="leadProfile" required value={selectedLeadProfile} onValueChange={setSelectedLeadProfile} disabled={isEditing}>
+                <SelectTrigger id="lead-profile">
                     <SelectValue placeholder="Select a lead profile" />
                 </SelectTrigger>
                 <SelectContent>
@@ -168,8 +178,7 @@ export function CampaignCreationForm({ onCampaignSubmit, editingCampaign, clearE
             </div>
         </div>
         <div className="flex flex-col md:flex-row gap-2">
-          <SubmitButton isEditing={isEditing} />
-          {isEditing && <Button variant="outline" onClick={clearEditing} className="w-full md:w-auto">Cancel Edit</Button>}
+          {!isEditing && <SubmitButton />}
         </div>
       </form>
 
@@ -229,7 +238,8 @@ export function CampaignCreationForm({ onCampaignSubmit, editingCampaign, clearE
               </CardContent>
             </Card>
           </div>
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            {isEditing && <Button variant="outline" onClick={clearEditing}>Cancel</Button>}
             <Button onClick={handleSubmitCampaign}>
               <Rocket className="mr-2 h-4 w-4" />
               {isEditing ? 'Update Campaign' : 'Start Campaign'}
