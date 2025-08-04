@@ -25,8 +25,8 @@ const navItems = [
   { href: '/leads', label: 'Lead Profiling', icon: Users },
   { href: '/campaigns', label: 'Campaigns', icon: Mail },
   { href: '/calling', label: 'Calling', icon: Phone },
+  { href: '/email', label: 'Email', icon: Mail },
   { href: '/calendar', label: 'Calendar', icon: Calendar },
-  { href: '/templates', label: 'Templates', icon: FileText },
 ];
 
 export function MainNav() {
