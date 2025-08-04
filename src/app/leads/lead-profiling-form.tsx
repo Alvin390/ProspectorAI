@@ -40,17 +40,21 @@ interface LeadProfilingFormProps {
   solutions: Solution[];
   onProfileSave: (profileData: Partial<Profile>, data: GenerateLeadProfileOutput) => void;
   editingProfile?: Profile | null;
+  onCancel: () => void;
 }
 
-export function LeadProfilingForm({ solutions, onProfileSave, editingProfile }: LeadProfilingFormProps) {
+export function LeadProfilingForm({ solutions, onProfileSave, editingProfile, onCancel }: LeadProfilingFormProps) {
   const [state, formAction] = useActionState(handleGenerateLeadProfile, initialState);
-  const [description, setDescription] = useState(editingProfile?.description || '');
-  const [generatedData, setGeneratedData] = useState<GenerateLeadProfileOutput | null>(editingProfile?.profileData || null);
+  const [description, setDescription] = useState('');
+  const [generatedData, setGeneratedData] = useState<GenerateLeadProfileOutput | null>(null);
 
   useEffect(() => {
     if (editingProfile) {
-        setDescription(editingProfile.description);
-        setGeneratedData(editingProfile.profileData);
+        setDescription(editingProfile.description || '');
+        setGeneratedData(editingProfile.profileData || null);
+    } else {
+        setDescription('');
+        setGeneratedData(null);
     }
   }, [editingProfile]);
 
@@ -151,7 +155,8 @@ export function LeadProfilingForm({ solutions, onProfileSave, editingProfile }: 
                 </CardContent>
             </Card>
             </div>
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
+                {editingProfile && <Button variant="outline" onClick={onCancel}>Cancel</Button>}
                 <Button onClick={handleSaveClick}>
                     <Save className="mr-2 h-4 w-4" />
                     {editingProfile ? 'Update Profile' : 'Save New Profile'}

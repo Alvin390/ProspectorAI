@@ -100,8 +100,8 @@ export default function LeadProfilingPage() {
   }, [profiles]);
 
   const handleProfileSave = (profileData: Partial<Profile>, generatedData: GenerateLeadProfileOutput) => {
-    if (profileData.id) { // This is an update
-        setProfiles(profiles.map(p => p.id === profileData.id ? {
+    if (profileData.id && editingProfile) { // This is an update
+        setProfiles(profiles.map(p => p.id === editingProfile.id ? {
             ...p,
             description: profileData.description!,
             profileData: generatedData,
@@ -132,6 +132,10 @@ export default function LeadProfilingPage() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  const handleCancelEdit = () => {
+    setEditingProfile(null);
+  }
+
 
   return (
     <div className="grid gap-6">
@@ -150,6 +154,7 @@ export default function LeadProfilingPage() {
             solutions={initialSolutions} 
             onProfileSave={handleProfileSave}
             editingProfile={editingProfile}
+            onCancel={handleCancelEdit}
             key={editingProfile?.id || 'new'} // Force re-render when editing
           />
         </CardContent>
@@ -159,7 +164,7 @@ export default function LeadProfilingPage() {
           <CardTitle>Past Profiles</CardTitle>
           <CardDescription>
             Review and manage your previously generated lead profiles.
-          </CardDescription>
+          </Description>
         </CardHeader>
         <CardContent>
           <Table>
