@@ -13,6 +13,7 @@ import {
   Package,
   Bot,
   Inbox,
+  Mic,
 } from 'lucide-react';
 
 import {
@@ -27,7 +28,8 @@ const navItems = [
   { href: '/leads', label: 'Lead Profiling', icon: Users },
   { href: '/campaigns', label: 'Campaigns', icon: Mail },
   { href: '/orchestration', label: 'Orchestration', icon: Bot },
-  { href: '/calling', label: 'Calling', icon: Phone },
+  { href: '/calling', label: 'Calling Log', icon: Phone },
+  { href: '/live-call', label: 'Live Call', icon: Mic },
   { href: '/email', label: 'Email Log', icon: Mail },
   { href: '/inbox', label: 'Inbox', icon: Inbox },
   { href: '/calendar', label: 'Calendar', icon: Calendar },
