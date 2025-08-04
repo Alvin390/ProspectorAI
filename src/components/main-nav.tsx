@@ -12,6 +12,7 @@ import {
   FileText,
   Package,
   Bot,
+  Inbox,
 } from 'lucide-react';
 
 import {
@@ -27,9 +28,10 @@ const navItems = [
   { href: '/campaigns', label: 'Campaigns', icon: Mail },
   { href: '/orchestration', label: 'Orchestration', icon: Bot },
   { href: '/calling', label: 'Calling', icon: Phone },
-  { href: '/email', label: 'Email', icon: Mail },
+  { href: '/email', label: 'Email Log', icon: Mail },
+  { href: '/inbox', label: 'Inbox', icon: Inbox },
   { href: '/calendar', label: 'Calendar', icon: Calendar },
-  { href: '/templates', label: 'Templates', icon: FileText },
+  { href: '/templates', label: 'Sent Emails', icon: FileText },
 ];
 
 export function MainNav() {

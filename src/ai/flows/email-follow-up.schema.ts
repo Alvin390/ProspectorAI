@@ -18,8 +18,8 @@ export const EmailFollowUpInputSchema = z.object({
 export type EmailFollowUpInput = z.infer<typeof EmailFollowUpInputSchema>;
 
 export const EmailFollowUpOutputSchema = z.object({
-  responseEmailBody: z.string().describe('The AI-generated draft of the email reply.'),
-  suggestedAction: z.enum(['SEND_REPLY', 'SCHEDULE_MEETING', 'MARK_AS_NOT_INTERESTED', 'DO_NOTHING'])
-    .describe('The recommended next step based on the conversation.')
+  responseEmailBody: z.string().describe('The AI-generated draft of the email reply. If no reply is needed, this can be an empty string.'),
+  suggestedAction: z.enum(['REPLIED_AUTOMATICALLY', 'MEETING_SCHEDULED', 'MARK_AS_NOT_INTERESTED', 'NEEDS_ATTENTION'])
+    .describe('The final status or next action determined by the AI. "NEEDS_ATTENTION" means a human must review.')
 });
 export type EmailFollowUpOutput = z.infer<typeof EmailFollowUpOutputSchema>;

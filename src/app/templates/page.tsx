@@ -40,14 +40,14 @@ const initialSentEmails: SentEmail[] = [
     id: 'sent-1',
     leadIdentifier: 'contact@innovateinc.com',
     subject: 'A thought about Innovate Inc.',
-    body: 'Hi Alex,\n\nI came across your recent article on scaling B2B SaaS platforms and was really impressed with your insights on reducing customer acquisition costs. It sparked a thought about how teams like yours handle the initial, time-consuming phase of lead discovery.\n\nWe help companies like yours automate persona discovery to focus sales teams on the most promising leads. Is solving that initial discovery challenge on your radar right now?\n\nBest,\nProspectorAI Agent',
+    body: 'Hi Alex,\n\nI came across your recent article on scaling B2B SaaS platforms and was really impressed with your insights on reducing customer acquisition costs. The core of my outreach is that we help companies like yours automate persona discovery to focus sales teams on the most promising leads. Is solving that initial discovery challenge on your radar right now?\n\nBest,\nProspectorAI Agent',
     timestamp: '2 hours ago',
   },
   {
     id: 'sent-2',
     leadIdentifier: 'pm@solutions.llc',
     subject: 'Re: Your inquiry',
-    body: 'Hi Brenda,\n\nFollowing up on our brief chat. You mentioned your team spends a lot of time on cold calls with low success. Our AI can automate that entire process, only routing confirmed, high-interest meetings to your human team.\n\nWould exploring a new way to handle outbound calling be valuable for Solutions LLC?\n\nBest,\nProspectorAI Agent',
+    body: 'Hi Brenda,\n\nFollowing up on our brief chat. You mentioned your team spends a lot of time on cold calls with low success. We provide an AI that can automate that entire process, only routing confirmed, high-interest meetings to your human team.\n\nWould exploring a new way to handle outbound calling be valuable for Solutions LLC?\n\nBest,\nProspectorAI Agent',
     timestamp: '1 day ago',
   },
    {
@@ -60,7 +60,7 @@ const initialSentEmails: SentEmail[] = [
 ];
 
 export default function SentEmailLogPage() {
-  const [sentEmails, setSentEmails] = useState<SentEmail[]>(initialSentEmails);
+  const [sentEmails, setSentEmails] = useState<SentEmail[]>([]);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [selectedEmail, setSelectedEmail] = useState<SentEmail | null>(null);
 
@@ -82,7 +82,7 @@ export default function SentEmailLogPage() {
         <div>
           <CardTitle>Sent Email Log</CardTitle>
           <CardDescription>
-            Review the final, personalized emails sent by the AI agent for each lead.
+            Review the final, personalized emails sent by the AI agent for each lead. This is a log of the AI's direct work.
           </CardDescription>
         </div>
       </CardHeader>
