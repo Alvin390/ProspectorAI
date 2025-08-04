@@ -16,8 +16,12 @@ import {
     conversationalCall,
 } from '@/ai/flows/conversational-call';
 import type { ConversationalCallInput, ConversationalCallOutput } from '@/ai/flows/conversational-call.schema';
+import {
+    runOrchestrator,
+} from '@/ai/flows/outreach-orchestrator';
 import { z } from 'zod';
 import { initialSolutions } from './solutions/data';
+import type { Campaign } from './campaigns/page';
 
 interface LeadProfileFormState {
   message: string;
@@ -161,5 +165,40 @@ export async function handleConversationalCall(
              return { message: 'error', data: null, error: e.errors.map(err => err.message).join(', ') };
          }
         return { message: 'error', data: null, error: e.message || 'An unknown error occurred.' };
+    }
+}
+
+interface OrchestratorState {
+    message: string;
+    error: string | null;
+}
+
+const mockLeads = [
+    { id: 'lead-001', name: 'Alex Johnson', company: 'Innovate Inc.', contact: 'contact@innovateinc.com' },
+    { id: 'lead-002', name: 'Brenda Smith', company: 'Solutions LLC', contact: 'pm@solutions.llc' },
+    { id: 'lead-003', name: 'Carlos Gomez', company: 'Synergy Corp', contact: 'info@synergycorp.io' },
+    { id: 'lead-004', name: 'David Chen', company: 'DataDriven Co.', contact: '+1-555-0103' },
+    { id: 'lead-005', name: 'Emily White', company: 'Growth Partners', contact: 'emily@growth.partners' }
+];
+
+export async function handleRunOrchestrator(campaign: Campaign): Promise<OrchestratorState> {
+    const solution = initialSolutions.find(s => s.name === campaign.solutionName);
+    if (!solution) {
+        return { message: 'error', error: 'Solution definition not found for this campaign.' };
+    }
+
+    try {
+        const result = await runOrchestrator({
+            campaignId: campaign.id,
+            solutionDescription: solution.description,
+            leadProfile: campaign.leadProfile,
+            potentialLeads: mockLeads // Using mock leads for demonstration
+        });
+        
+        console.log('Orchestrator Result:', JSON.stringify(result, null, 2));
+
+        return { message: 'success', error: null };
+    } catch (e: any) {
+        return { message: 'error', error: e.message || 'An unknown error occurred while running the orchestrator.' };
     }
 }

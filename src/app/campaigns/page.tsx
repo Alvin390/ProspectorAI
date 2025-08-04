@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import {
   Card,
   CardContent,
@@ -22,6 +22,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { CampaignCreationForm } from './campaign-creation-form';
+import { handleRunOrchestrator } from '@/app/actions';
+import { useToast } from '@/hooks/use-toast';
 
 export interface Campaign {
   id: string;
@@ -66,8 +68,10 @@ export default function CampaignsPage() {
     }
     return initialCampaigns;
   });
-  const [activeTab, setActiveTab] = useState('create');
+  const [activeTab, setActiveTab] = useState('tracker');
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -88,22 +92,55 @@ export default function CampaignsPage() {
       setEditingCampaign(null);
     } else {
       // Add new campaign
-      setCampaigns((prev) => [
-        {
+      const newCampaign = {
           ...campaignData,
           id: `campaign-${Date.now()}`,
-          status: 'Active',
-        },
-        ...prev,
-      ]);
+          status: 'Active' as const,
+      };
+      setCampaigns((prev) => [newCampaign, ...prev]);
+
+      startTransition(async () => {
+          const result = await handleRunOrchestrator(newCampaign);
+          if (result.message === 'error') {
+              toast({
+                  title: 'Orchestrator Failed',
+                  description: result.error,
+                  variant: 'destructive',
+              });
+          } else {
+               toast({
+                  title: 'Orchestrator Started!',
+                  description: `Campaign "${newCampaign.solutionName}" is now being managed by the AI.`,
+              });
+          }
+      });
     }
     setActiveTab('tracker');
   };
 
-  const toggleCampaignStatus = (id: string) => {
+  const toggleCampaignStatus = (campaign: Campaign) => {
+    const newStatus = campaign.status === 'Active' ? 'Paused' : 'Active';
     setCampaigns(campaigns.map(c => 
-      c.id === id ? { ...c, status: c.status === 'Active' ? 'Paused' : 'Active' } : c
+      c.id === campaign.id ? { ...c, status: newStatus } : c
     ));
+
+    if (newStatus === 'Active') {
+        startTransition(async () => {
+            const result = await handleRunOrchestrator(campaign);
+             if (result.message === 'error') {
+              toast({
+                  title: 'Orchestrator Failed',
+                  description: result.error,
+                  variant: 'destructive',
+              });
+            } else {
+                 toast({
+                    title: 'Orchestrator Started!',
+                    description: `Campaign "${campaign.solutionName}" is now being managed by the AI.`,
+                });
+            }
+        });
+    }
   }
 
   const handleEditClick = (campaign: Campaign) => {
@@ -189,8 +226,9 @@ export default function CampaignsPage() {
                     <TableCell className="space-x-2">
                       <Switch 
                         checked={campaign.status === 'Active'}
-                        onCheckedChange={() => toggleCampaignStatus(campaign.id)}
+                        onCheckedChange={() => toggleCampaignStatus(campaign)}
                         aria-label="Toggle campaign status"
+                        disabled={isPending}
                       />
                        <Button variant="outline" size="sm" onClick={() => handleEditClick(campaign)}>Edit</Button>
                     </TableCell>
