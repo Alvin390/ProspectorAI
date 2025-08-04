@@ -37,48 +37,51 @@ const generateMockCallLogs = (campaigns: Campaign[]): CallLog[] => {
     const activeCampaigns = campaigns.filter(c => c.status === 'Active');
     if (activeCampaigns.length === 0) return [];
 
-    const logs: CallLog[] = [
-        {
-            id: 'call-1',
-            campaignId: activeCampaigns[0].id,
-            campaignName: activeCampaigns[0].solutionName,
-            leadIdentifier: 'contact@innovateinc.com',
-            status: 'Meeting Booked',
-            summary: 'Lead was very interested in the AI discovery tool. Scheduled a demo for next Tuesday.',
-            timestamp: '3 hours ago'
-        },
-        {
-            id: 'call-2',
-            campaignId: activeCampaigns[0].id,
-            campaignName: activeCampaigns[0].solutionName,
-            leadIdentifier: 'info@synergycorp.io',
-            status: 'Not Interested',
-            summary: 'Reason: Already using a competitor solution and satisfied with it.',
-            timestamp: '5 hours ago'
+    const logs: CallLog[] = [];
+    
+    activeCampaigns.forEach((campaign, index) => {
+        if(index === 0) {
+            logs.push(
+                {
+                    id: `call-${campaign.id}-1`,
+                    campaignId: campaign.id,
+                    campaignName: campaign.solutionName,
+                    leadIdentifier: 'contact@innovateinc.com',
+                    status: 'Meeting Booked',
+                    summary: 'Lead was very interested in the AI discovery tool. Scheduled a demo for next Tuesday.',
+                    timestamp: '3 hours ago'
+                },
+                {
+                    id: `call-${campaign.id}-2`,
+                    campaignId: campaign.id,
+                    campaignName: campaign.solutionName,
+                    leadIdentifier: 'info@synergycorp.io',
+                    status: 'Not Interested',
+                    summary: 'Reason: Already using a competitor solution and satisfied with it.',
+                    timestamp: '5 hours ago'
+                },
+                {
+                    id: `call-${campaign.id}-3`,
+                    campaignId: campaign.id,
+                    campaignName: campaign.solutionName,
+                    leadIdentifier: 'jane.doe@techstart.co',
+                    status: 'Not Interested',
+                    summary: 'Reason: Budget constraints for new software this quarter.',
+                    timestamp: 'Yesterday'
+                }
+            );
+        } else if (index === 1) {
+             logs.push({
+                id: `call-${campaign.id}-1`,
+                campaignId: campaign.id,
+                campaignName: campaign.solutionName,
+                leadIdentifier: 'pm@solutions.llc',
+                status: 'Follow-up Required',
+                summary: 'Lead was busy, asked to call back next week.',
+                timestamp: 'Yesterday'
+            });
         }
-    ];
-
-    if (activeCampaigns.length > 1) {
-        logs.push({
-            id: 'call-3',
-            campaignId: activeCampaigns[1].id,
-            campaignName: activeCampaigns[1].solutionName,
-            leadIdentifier: 'pm@solutions.llc',
-            status: 'Follow-up Required',
-            summary: 'Lead was busy, asked to call back next week.',
-            timestamp: 'Yesterday'
-        });
-    }
-     logs.push({
-        id: 'call-4',
-        campaignId: activeCampaigns[0].id,
-        campaignName: activeCampaigns[0].solutionName,
-        leadIdentifier: 'jane.doe@techstart.co',
-        status: 'Not Interested',
-        summary: 'Reason: Budget constraints for new software this quarter.',
-        timestamp: 'Yesterday'
     });
-
 
     return logs;
 }
@@ -91,9 +94,15 @@ export default function CallingPage() {
   useEffect(() => {
     const campaignsFromStorage = localStorage.getItem('campaigns');
     if (campaignsFromStorage) {
-        const parsedCampaigns = JSON.parse(campaignsFromStorage);
-        setCampaigns(parsedCampaigns);
-        setCallLogs(generateMockCallLogs(parsedCampaigns));
+        try {
+            const parsedCampaigns = JSON.parse(campaignsFromStorage);
+            if (Array.isArray(parsedCampaigns)) {
+                setCampaigns(parsedCampaigns);
+                setCallLogs(generateMockCallLogs(parsedCampaigns));
+            }
+        } catch (error) {
+            console.error("Failed to parse campaigns from localStorage", error);
+        }
     }
   }, []);
 

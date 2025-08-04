@@ -56,7 +56,12 @@ export default function CampaignsPage() {
     if (typeof window !== 'undefined') {
         const savedCampaigns = localStorage.getItem('campaigns');
         if (savedCampaigns) {
-            return JSON.parse(savedCampaigns);
+            try {
+                const parsed = JSON.parse(savedCampaigns);
+                return Array.isArray(parsed) ? parsed : initialCampaigns;
+            } catch {
+                return initialCampaigns;
+            }
         }
     }
     return initialCampaigns;
