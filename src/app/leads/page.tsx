@@ -35,46 +35,41 @@ import { initialProfiles, type Profile } from './data';
 
 
 export default function LeadProfilingPage() {
-  const [profiles, setProfiles] = useState<Profile[]>(() => {
-    if (typeof window !== 'undefined') {
-        const savedProfiles = localStorage.getItem('profiles');
-        if (savedProfiles) {
-            try {
-                const parsed = JSON.parse(savedProfiles);
-                return Array.isArray(parsed) ? parsed : initialProfiles;
-            } catch {
-                return initialProfiles;
-            }
-        }
-    }
-    return initialProfiles;
-  });
-  
-  const [solutions, setSolutions] = useState<Solution[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>(initialProfiles);
+  const [solutions, setSolutions] = useState<Solution[]>(initialSolutions);
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-        localStorage.setItem('profiles', JSON.stringify(profiles));
-    }
-  }, [profiles]);
-  
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-        const savedSolutions = localStorage.getItem('solutions');
-        if (savedSolutions) {
-            try {
-                const parsed = JSON.parse(savedSolutions);
-                setSolutions(Array.isArray(parsed) ? parsed : initialSolutions);
-            } catch {
-                setSolutions(initialSolutions);
+    const savedProfiles = localStorage.getItem('profiles');
+    if (savedProfiles) {
+        try {
+            const parsed = JSON.parse(savedProfiles);
+            if(Array.isArray(parsed)) {
+                setProfiles(parsed);
             }
-        } else {
-            setSolutions(initialSolutions);
+        } catch {
+            // Do nothing, use initial
+        }
+    }
+
+    const savedSolutions = localStorage.getItem('solutions');
+    if (savedSolutions) {
+        try {
+            const parsed = JSON.parse(savedSolutions);
+            if(Array.isArray(parsed)) {
+                setSolutions(parsed);
+            }
+        } catch {
+            // Do nothing, use initial
         }
     }
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('profiles', JSON.stringify(profiles));
+  }, [profiles]);
+  
 
   const handleProfileSave = (profileData: Partial<Profile>, generatedData: GenerateLeadProfileOutput) => {
     if (profileData.id && editingProfile) { // This is an update

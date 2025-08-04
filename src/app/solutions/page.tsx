@@ -35,31 +35,27 @@ import { initialSolutions, type Solution } from './data';
 import { useToast } from '@/hooks/use-toast';
 
 export default function SolutionsPage() {
-  const [solutions, setSolutions] = useState<Solution[]>([]);
+  const [solutions, setSolutions] = useState<Solution[]>(initialSolutions);
   const [open, setOpen] = useState(false);
   const [newSolution, setNewSolution] = useState<Solution>({ name: '', description: '' });
   const { toast } = useToast();
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedSolutions = localStorage.getItem('solutions');
-      if (savedSolutions) {
-        try {
-          const parsed = JSON.parse(savedSolutions);
-          setSolutions(Array.isArray(parsed) ? parsed : initialSolutions);
-        } catch {
-          setSolutions(initialSolutions);
+    const savedSolutions = localStorage.getItem('solutions');
+    if (savedSolutions) {
+      try {
+        const parsed = JSON.parse(savedSolutions);
+        if (Array.isArray(parsed)) {
+            setSolutions(parsed);
         }
-      } else {
-        setSolutions(initialSolutions);
+      } catch {
+        // Do nothing, use initial
       }
     }
   }, []);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && solutions.length > 0) {
-      localStorage.setItem('solutions', JSON.stringify(solutions));
-    }
+    localStorage.setItem('solutions', JSON.stringify(solutions));
   }, [solutions]);
 
 

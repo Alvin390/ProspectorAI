@@ -56,60 +56,56 @@ const initialCampaigns: Campaign[] = [
 ]
 
 export default function CampaignsPage() {
-  const [campaigns, setCampaigns] = useState<Campaign[]>(() => {
-    if (typeof window !== 'undefined') {
-        const savedCampaigns = localStorage.getItem('campaigns');
-        if (savedCampaigns) {
-            try {
-                const parsed = JSON.parse(savedCampaigns);
-                return Array.isArray(parsed) ? parsed : initialCampaigns;
-            } catch {
-                return initialCampaigns;
-            }
-        }
-    }
-    return initialCampaigns;
-  });
-  const [solutions, setSolutions] = useState<Solution[]>([]);
-  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>(initialCampaigns);
+  const [solutions, setSolutions] = useState<Solution[]>(initialSolutions);
+  const [profiles, setProfiles] = useState<Profile[]>(initialProfiles);
   const [activeTab, setActiveTab] = useState('tracker');
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-        localStorage.setItem('campaigns', JSON.stringify(campaigns));
-    }
-  }, [campaigns]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-        const savedSolutions = localStorage.getItem('solutions');
-        if (savedSolutions) {
-            try {
-                const parsed = JSON.parse(savedSolutions);
-                setSolutions(Array.isArray(parsed) ? parsed : initialSolutions);
-            } catch {
-                setSolutions(initialSolutions);
+    const savedCampaigns = localStorage.getItem('campaigns');
+    if (savedCampaigns) {
+        try {
+            const parsed = JSON.parse(savedCampaigns);
+            if (Array.isArray(parsed)) {
+                setCampaigns(parsed);
             }
-        } else {
-            setSolutions(initialSolutions);
+        } catch {
+            // Do nothing, use initial
         }
+    }
 
-        const savedProfiles = localStorage.getItem('profiles');
-         if (savedProfiles) {
-            try {
-                const parsed = JSON.parse(savedProfiles);
-                setProfiles(Array.isArray(parsed) ? parsed : initialProfiles);
-            } catch {
-                setProfiles(initialProfiles);
+    const savedSolutions = localStorage.getItem('solutions');
+    if (savedSolutions) {
+        try {
+            const parsed = JSON.parse(savedSolutions);
+            if (Array.isArray(parsed)) {
+                setSolutions(parsed);
             }
-        } else {
-            setProfiles(initialProfiles);
+        } catch {
+             // Do nothing, use initial
+        }
+    }
+
+    const savedProfiles = localStorage.getItem('profiles');
+     if (savedProfiles) {
+        try {
+            const parsed = JSON.parse(savedProfiles);
+             if (Array.isArray(parsed)) {
+                setProfiles(parsed);
+            }
+        } catch {
+            // Do nothing, use initial
         }
     }
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('campaigns', JSON.stringify(campaigns));
+  }, [campaigns]);
+
 
   const handleCampaignSubmit = (
     campaignData: Omit<Campaign, 'id' | 'status'>
