@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState, useEffect } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -13,7 +14,7 @@ import {
 } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { handleGenerateCampaignContent } from '@/app/actions';
-import { Terminal, Copy } from 'lucide-react';
+import { Terminal, Copy, Rocket } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -44,6 +45,15 @@ function SubmitButton() {
 export function CampaignCreationForm() {
   const [state, formAction] = useActionState(handleGenerateCampaignContent, initialState);
   const { toast } = useToast();
+  const [emailScript, setEmailScript] = useState('');
+  const [callScript, setCallScript] = useState('');
+
+  useEffect(() => {
+    if (state.data) {
+      setEmailScript(state.data.emailScript);
+      setCallScript(state.data.callScript);
+    }
+  }, [state.data]);
 
   const copyToClipboard = (text: string, type: string) => {
     navigator.clipboard.writeText(text);
@@ -52,6 +62,13 @@ export function CampaignCreationForm() {
       description: `${type} script has been copied.`,
     });
   };
+  
+  const handleStartCampaign = () => {
+    toast({
+        title: "Campaign Started!",
+        description: "Your outreach campaign is now running.",
+    })
+  }
 
   return (
     <div className="space-y-6">
@@ -106,52 +123,60 @@ export function CampaignCreationForm() {
       )}
 
       {state.data && (
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Email Script</CardTitle>
-                <CardDescription>A personalized email for your campaign.</CardDescription>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => copyToClipboard(state.data!.emailScript, 'Email')}
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <Textarea
-                readOnly
-                value={state.data.emailScript}
-                className="h-64 text-sm text-muted-foreground"
-              />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Call Script</CardTitle>
-                <CardDescription>A concise script for AI-powered calls.</CardDescription>
-              </div>
-               <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => copyToClipboard(state.data!.callScript, 'Call')}
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <Textarea
-                readOnly
-                value={state.data.callScript}
-                className="h-64 text-sm text-muted-foreground"
-              />
-            </CardContent>
-          </Card>
-        </div>
+        <>
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Email Script</CardTitle>
+                  <CardDescription>A personalized email for your campaign.</CardDescription>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => copyToClipboard(emailScript, 'Email')}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  value={emailScript}
+                  onChange={(e) => setEmailScript(e.target.value)}
+                  className="h-64 text-sm"
+                />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Call Script</CardTitle>
+                  <CardDescription>A concise script for AI-powered calls.</CardDescription>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => copyToClipboard(callScript, 'Call')}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  value={callScript}
+                  onChange={(e) => setCallScript(e.target.value)}
+                  className="h-64 text-sm"
+                />
+              </CardContent>
+            </Card>
+          </div>
+          <div className="flex justify-end">
+            <Button onClick={handleStartCampaign}>
+              <Rocket className="mr-2 h-4 w-4" />
+              Start Campaign
+            </Button>
+          </div>
+        </>
       )}
     </div>
   );
