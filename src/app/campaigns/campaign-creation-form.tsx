@@ -55,14 +55,13 @@ interface CampaignCreationFormProps {
 export function CampaignCreationForm({ solutions, profiles, onCampaignSubmit, editingCampaign, clearEditing }: CampaignCreationFormProps) {
   const [state, formAction] = useActionState(handleGenerateCampaignContent, initialState);
   const { toast } = useToast();
+  const formRef = useRef<HTMLFormElement>(null);
+
+  const [selectedSolutionId, setSelectedSolutionId] = useState<string>('');
+  const [selectedLeadProfileId, setSelectedLeadProfileId] = useState<string>('');
   const [emailScript, setEmailScript] = useState('');
   const [callScript, setCallScript] = useState('');
   const [generatedContent, setGeneratedContent] = useState<GenerateCampaignContentOutput | null>(null);
-  
-  const formRef = useRef<HTMLFormElement>(null);
-  
-  const [selectedSolutionId, setSelectedSolutionId] = useState<string>('');
-  const [selectedLeadProfileId, setSelectedLeadProfileId] = useState<string>('');
 
   const isEditing = !!editingCampaign;
 
@@ -76,24 +75,22 @@ export function CampaignCreationForm({ solutions, profiles, onCampaignSubmit, ed
         emailScript: editingCampaign.emailScript,
         callScript: editingCampaign.callScript,
       });
-      // We don't want to trigger a new generation, so clear the action state
-      state.message = '';
-      state.data = null;
-      state.error = null;
+      // Clear action state to prevent re-showing old errors
+      state.message = ''; 
     } else {
-       // Reset form when not editing or when editingCampaign is cleared
+      // Reset form when not editing or when editingCampaign is cleared
       resetFormState();
     }
   }, [editingCampaign]);
 
 
   useEffect(() => {
-    if (state.data) {
+    if (state.message === 'success' && state.data) {
       setEmailScript(state.data.emailScript);
       setCallScript(state.data.callScript);
       setGeneratedContent(state.data);
     }
-     if (state.message === 'error') {
+    if (state.message === 'error') {
       toast({
         title: 'Error generating content',
         description: state.error,
@@ -119,7 +116,7 @@ export function CampaignCreationForm({ solutions, profiles, onCampaignSubmit, ed
     setCallScript('');
     setSelectedSolutionId('');
     setSelectedLeadProfileId('');
-    state.message = '';
+    state.message = ''; // Important to clear state message
     state.data = null;
     state.error = null;
     if (isEditing) {
@@ -138,7 +135,7 @@ export function CampaignCreationForm({ solutions, profiles, onCampaignSubmit, ed
     if (!campaignData.solutionId || !campaignData.leadProfileId || !campaignData.emailScript || !campaignData.callScript) {
         toast({
             title: 'Missing Information',
-            description: 'Please ensure all fields are filled and content is generated.',
+            description: 'Please select a solution and lead profile, generate content, and ensure scripts are not empty.',
             variant: 'destructive'
         });
         return;
@@ -164,7 +161,7 @@ export function CampaignCreationForm({ solutions, profiles, onCampaignSubmit, ed
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
                 <Label htmlFor="solution">Solution</Label>
-                <Select name="solution-select" required value={selectedSolutionId} onValueChange={setSelectedSolutionId} disabled={isEditing || !!generatedContent}>
+                <Select name="solution-select" required value={selectedSolutionId} onValueChange={setSelectedSolutionId} disabled={!!generatedContent}>
                     <SelectTrigger id="solution">
                         <SelectValue placeholder="Select a solution" />
                     </SelectTrigger>
@@ -177,7 +174,7 @@ export function CampaignCreationForm({ solutions, profiles, onCampaignSubmit, ed
             </div>
             <div className="space-y-2">
                 <Label htmlFor="lead-profile">Lead Profile</Label>
-                <Select name="leadProfile-select" required value={selectedLeadProfileId} onValueChange={setSelectedLeadProfileId} disabled={isEditing || !!generatedContent}>
+                <Select name="leadProfile-select" required value={selectedLeadProfileId} onValueChange={setSelectedLeadProfileId} disabled={!!generatedContent}>
                 <SelectTrigger id="lead-profile">
                     <SelectValue placeholder="Select a lead profile" />
                 </SelectTrigger>

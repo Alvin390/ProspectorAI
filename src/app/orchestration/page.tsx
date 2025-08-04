@@ -90,8 +90,8 @@ export default function OrchestrationPage() {
     }
     showPlanForCampaign(selectedCampaignId);
      toast({
-        title: 'Plan Refreshed',
-        description: `Displaying the latest AI outreach plan for "${getCampaignName(selectedCampaignId)}".`,
+        title: 'Plan Displayed',
+        description: `Showing the latest AI outreach plan for "${getCampaignName(selectedCampaignId)}".`,
     });
   }
   
@@ -136,7 +136,7 @@ export default function OrchestrationPage() {
                     </SelectContent>
                 </Select>
                  <Button onClick={handleShowPlan} disabled={!selectedCampaignId}>
-                    Show/Refresh Plan
+                    Show Plan
                 </Button>
             </div>
         </div>
@@ -182,7 +182,7 @@ export default function OrchestrationPage() {
                 <Bot className="h-4 w-4" />
                 <AlertTitle>No Plan to Display</AlertTitle>
                 <AlertDescription>
-                    Select an active campaign to see its strategic plan. If a campaign is active but has no plan, it might still be generating one. You can click "Show/Refresh Plan" to check again.
+                    Select an active campaign to see its strategic plan. If a campaign is active but has no plan, it might still be generating one. You can click "Show Plan" to check again.
                 </AlertDescription>
             </Alert>
         )}
