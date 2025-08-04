@@ -68,15 +68,10 @@ export async function handleGenerateCampaignContent(
     };
   }
   
-  // In a real app, you would fetch the full profile based on the ID/name.
-  // For this demo, we'll just pass the description.
-  const leadProfileContent = `Tech startups in Silicon Valley with 50-100 employees`;
-
-
   try {
     const result = await generateCampaignContent({
         valueProposition: validated.data.valueProposition,
-        leadProfile: leadProfileContent
+        leadProfile: validated.data.leadProfile
     });
     return { message: 'success', data: result, error: null };
   } catch (e: any) {
