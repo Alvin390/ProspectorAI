@@ -115,7 +115,7 @@ export default function EmailLogPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {allEmailLogs.sort((a,b) => parseInt(a.timestamp) - parseInt(b.timestamp)).map((log) => (
+                {allEmailLogs.sort((a,b) => parseInt(b.timestamp) - parseInt(a.timestamp)).map((log) => (
                   <TableRow key={log.id} className={log.status === 'Needs Attention' ? 'bg-yellow-500/10' : ''}>
                     <TableCell className="font-medium">{log.campaignName}</TableCell>
                     <TableCell>{log.leadIdentifier}</TableCell>

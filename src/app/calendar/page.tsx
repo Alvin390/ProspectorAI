@@ -65,18 +65,21 @@ export default function CalendarPage() {
   const upcomingMeetings = useMemo(() => {
     if (isLoading) return [];
     
-    return allCallLogs
+    const meetings = allCallLogs
         .filter(log => log.status === 'Meeting Booked')
         .map((log, index) => {
             const leadName = log.leadIdentifier.split('@')[0].replace('.', ' ').replace(/\b\w/g, l => l.toUpperCase());
             const companyName = log.campaignName;
             const template = briefingTemplates[index % briefingTemplates.length]; // Cycle through templates
             
+            const meetingDate = new Date();
+            meetingDate.setDate(meetingDate.getDate() + index + 2); // Set meeting for future days
+
             return {
                 lead: leadName,
                 company: companyName,
                 time: `In ${index + 2} days`, // Placeholder time
-                date: new Date(Date.now() + (index + 2) * 86400000).toISOString(),
+                date: meetingDate.toISOString(),
                 briefing: {
                     title: template.title.replace('{company}', companyName),
                     summary: template.summary.replace('{lead}', leadName),
@@ -84,6 +87,10 @@ export default function CalendarPage() {
                 }
             };
         });
+
+    // Sort meetings by date
+    return meetings.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
   }, [allCallLogs, isLoading]);
 
   const handleViewBriefing = (meeting: Meeting) => {

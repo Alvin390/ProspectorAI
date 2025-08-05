@@ -81,7 +81,7 @@ export default function CallingPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {allCallLogs.sort((a,b) => parseInt(a.timestamp) - parseInt(b.timestamp)).map((log) => (
+                {allCallLogs.sort((a,b) => parseInt(b.timestamp) - parseInt(a.timestamp)).map((log) => (
                   <TableRow key={log.id}>
                     <TableCell className="font-medium">{log.campaignName}</TableCell>
                     <TableCell>{log.leadIdentifier}</TableCell>
