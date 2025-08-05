@@ -238,7 +238,7 @@ export default function LiveCallPage() {
                         <input type="hidden" name="solutionDescription" value={selectedSolution?.description || ''} />
                         <input type="hidden" name="leadProfile" value={leadProfileString} />
                         <input type="hidden" name="callScript" value={selectedCampaign?.callScript || ''} />
-                        <input type="hidden" name="conversationHistory" value={JSON.stringify(conversation)} />
+                        <input type="hidden" name="conversationHistory" value={JSON.stringify(conversation.map(({audio, ...rest}) => rest))} />
                         
                         <Input
                             name="userResponse"
@@ -263,3 +263,5 @@ export default function LiveCallPage() {
     </div>
   );
 }
+
+    
