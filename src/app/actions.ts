@@ -181,16 +181,24 @@ export async function handleConversationalCall(
         const clientHistory = validated.conversationHistory;
         const newUserMessage = { role: 'user' as const, text: validated.userResponse };
 
-        // Prepare the history for the AI, stripping out extra fields like audio.
-        const aiHistory = [...clientHistory.map(({ role, text }: {role: string, text: string}) => ({ role, text })), { role: 'user', text: validated.userResponse }];
+        let aiHistory = [...clientHistory.map(({ role, text }: {role: string, text: string}) => ({ role, text }))];
+        
+        // If the history is empty, this is the first turn after the opening script.
+        // Prepend the call script as the first "model" utterance.
+        if (aiHistory.length === 0 && validated.callScript) {
+            aiHistory.unshift({ role: 'model', text: validated.callScript});
+        }
+        
+        // Add the latest user response to the history for the AI
+        aiHistory.push({ role: 'user', text: validated.userResponse });
 
 
         const inputForAI: ConversationalCallInput = {
           solutionDescription: validated.solutionDescription,
           leadProfile: validated.leadProfile,
-          callScript: validated.callScript,
           userResponse: validated.userResponse,
-          conversationHistory: aiHistory.length > 1 ? aiHistory.slice(0, -1) : [],
+          // The full history for the AI includes everything up to the latest user message
+          conversationHistory: aiHistory,
         };
         
         const result = await conversationalCall(inputForAI);

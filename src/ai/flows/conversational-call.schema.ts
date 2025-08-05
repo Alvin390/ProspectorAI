@@ -10,11 +10,10 @@ import { z } from 'genkit';
 export const ConversationalCallInputSchema = z.object({
   solutionDescription: z.string().describe('A detailed description of the software solution or product being offered.'),
   leadProfile: z.string().describe('The generated lead profile.'),
-  callScript: z.string().describe('The initial script or key talking points for the call.'),
   conversationHistory: z.array(z.object({
       role: z.string().describe("The role, either 'user' for the lead or 'model' for the AI agent."),
       text: z.string().describe("The text of the conversation turn.")
-  })).describe('The history of the conversation so far.'),
+  })).describe('The history of the conversation so far, including the AI\'s opening lines.'),
   userResponse: z.string().describe("The latest response from the lead (the user).")
 });
 export type ConversationalCallInput = z.infer<typeof ConversationalCallInputSchema>;

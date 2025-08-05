@@ -197,6 +197,15 @@ export default function LiveCallPage() {
                 <>
                     <ScrollArea className="flex-grow pr-4" ref={scrollAreaRef}>
                         <div className="space-y-6">
+                         {state.history.length === 0 && (
+                            <div className="flex items-start gap-3">
+                                <Bot className="h-6 w-6 text-primary flex-shrink-0" />
+                                <div className="rounded-lg p-3 max-w-sm bg-secondary">
+                                    <p className="text-sm font-semibold">AI is making the opening statement:</p>
+                                    <p className="text-sm italic mt-1">{selectedCampaign?.callScript}</p>
+                                </div>
+                            </div>
+                         )}
                         {state.history.map((msg, index) => (
                             <div key={index} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
                             {msg.role === 'model' && <Bot className="h-6 w-6 text-primary flex-shrink-0" />}
