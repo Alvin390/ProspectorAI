@@ -20,10 +20,8 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Phone, AlertCircle, CheckCircle, Clock } from 'lucide-react';
-import type { Campaign } from '@/app/campaigns/page';
-import { type Solution } from '@/app/solutions/data';
 
-interface CallLog {
+export interface CallLog {
   id: string;
   campaignId: string;
   campaignName: string;
@@ -33,85 +31,21 @@ interface CallLog {
   timestamp: string;
 }
 
-const generateMockCallLogs = (campaigns: Campaign[], solutions: Solution[]): CallLog[] => {
-    if (campaigns.length === 0 || solutions.length === 0) return [];
-    
-    const activeCampaigns = campaigns.filter(c => c.status === 'Active');
-    if (activeCampaigns.length === 0) return [];
-
-    const getSolutionName = (id: string) => solutions.find(s => s.id === id)?.name || 'Unknown Solution';
-
-    const logs: CallLog[] = [];
-    
-    activeCampaigns.forEach((campaign, index) => {
-        // Generate more varied and realistic logs for each active campaign
-        if(index === 0) { // For the first active campaign
-            logs.push(
-                {
-                    id: `call-${campaign.id}-1`,
-                    campaignId: campaign.id,
-                    campaignName: getSolutionName(campaign.solutionId),
-                    leadIdentifier: 'contact@innovateinc.com',
-                    status: 'Meeting Booked',
-                    summary: 'Lead was very interested in the AI discovery tool. Scheduled a demo for next Tuesday.',
-                    timestamp: '3 hours ago'
-                },
-                {
-                    id: `call-${campaign.id}-2`,
-                    campaignId: campaign.id,
-                    campaignName: getSolutionName(campaign.solutionId),
-                    leadIdentifier: 'info@synergycorp.io',
-                    status: 'Not Interested',
-                    summary: 'Reason: Already using a competitor solution and satisfied with it.',
-                    timestamp: '5 hours ago'
-                }
-            );
-        }
-        
-        if (index === 1) { // For the second active campaign
-             logs.push(
-                {
-                    id: `call-${campaign.id}-1`,
-                    campaignId: campaign.id,
-                    campaignName: getSolutionName(campaign.solutionId),
-                    leadIdentifier: 'pm@solutions.llc',
-                    status: 'Follow-up Required',
-                    summary: 'Lead was busy, asked to call back next week.',
-                    timestamp: 'Yesterday'
-                },
-                {
-                    id: `call-${campaign.id}-2`,
-                    campaignId: campaign.id,
-                    campaignName: getSolutionName(campaign.solutionId),
-                    leadIdentifier: 'jane.doe@techstart.co',
-                    status: 'Not Interested',
-                    summary: 'Reason: Budget constraints for new software this quarter.',
-                    timestamp: '2 days ago'
-                }
-            );
-        }
-    });
-
-    return logs.sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()); // Sort by time
-}
-
-
 export default function CallingPage() {
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [solutions, setSolutions] = useState<Solution[]>([]);
   const [callLogs, setCallLogs] = useState<CallLog[]>([]);
 
   useEffect(() => {
-    const campaignsFromStorage = localStorage.getItem('campaigns');
-    const solutionsFromStorage = localStorage.getItem('solutions');
+    // This effect will run when the component mounts and whenever campaigns change.
+    const allCallLogs = JSON.parse(localStorage.getItem('allCallLogs') || '[]');
+    setCallLogs(allCallLogs);
 
-    const loadedCampaigns = campaignsFromStorage ? JSON.parse(campaignsFromStorage) : [];
-    const loadedSolutions = solutionsFromStorage ? JSON.parse(solutionsFromStorage) : [];
-    
-    setCampaigns(loadedCampaigns);
-    setSolutions(loadedSolutions);
+    const handleStorageChange = () => {
+        const updatedLogs = JSON.parse(localStorage.getItem('allCallLogs') || '[]');
+        setCallLogs(updatedLogs);
+    };
 
-    setCallLogs(generateMockCallLogs(loadedCampaigns, loadedSolutions));
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const getStatusIcon = (status: CallLog['status']) => {
@@ -158,7 +92,7 @@ export default function CallingPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {callLogs.map((log) => (
+                {callLogs.sort((a,b) => parseInt(a.timestamp) - parseInt(b.timestamp)).map((log) => (
                   <TableRow key={log.id}>
                     <TableCell className="font-medium">{log.campaignName}</TableCell>
                     <TableCell>{log.leadIdentifier}</TableCell>

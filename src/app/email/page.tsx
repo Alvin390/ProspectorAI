@@ -20,12 +20,10 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Mail, CheckCircle, Clock, Send, AlertCircle as BounceIcon, AlertTriangle, Inbox } from 'lucide-react';
-import type { Campaign } from '@/app/campaigns/page';
-import { type Solution } from '@/app/solutions/data';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
-interface EmailLog {
+export interface EmailLog {
   id: string;
   campaignId: string;
   campaignName: string;
@@ -35,93 +33,20 @@ interface EmailLog {
   timestamp: string;
 }
 
-const generateMockEmailLogs = (campaigns: Campaign[], solutions: Solution[]): EmailLog[] => {
-    if (campaigns.length === 0 || solutions.length === 0) return [];
-    
-    const activeCampaigns = campaigns.filter(c => c.status === 'Active');
-    if (activeCampaigns.length === 0) return [];
-
-    const getSolutionName = (id: string) => solutions.find(s => s.id === id)?.name || 'Unknown Solution';
-
-    const logs: EmailLog[] = [];
-    
-    activeCampaigns.forEach((campaign, index) => {
-        if(index === 0) { // For the first active campaign
-             logs.push(
-                {
-                    id: `email-${campaign.id}-1`,
-                    campaignId: campaign.id,
-                    campaignName: getSolutionName(campaign.solutionId),
-                    leadIdentifier: 'pm@solutions.llc',
-                    status: 'Needs Attention',
-                    subject: 'Re: Your inquiry',
-                    timestamp: '5 minutes ago'
-                },
-                {
-                    id: `email-${campaign.id}-2`,
-                    campaignId: campaign.id,
-                    campaignName: getSolutionName(campaign.solutionId),
-                    leadIdentifier: 'contact@innovateinc.com',
-                    status: 'Replied',
-                    subject: 'Re: AI Discovery Tool',
-                    timestamp: '1 hour ago'
-                },
-                {
-                    id: `email-${campaign.id}-3`,
-                    campaignId: campaign.id,
-                    campaignName: getSolutionName(campaign.solutionId),
-                    leadIdentifier: 'info@synergycorp.io',
-                    status: 'Opened',
-                    subject: 'Your request for info',
-                    timestamp: '4 hours ago'
-                }
-            );
-        }
-        
-        if (index === 1) { // For the second active campaign
-             logs.push(
-                {
-                    id: `email-${campaign.id}-1`,
-                    campaignId: campaign.id,
-                    campaignName: getSolutionName(campaign.solutionId),
-                    leadIdentifier: 'contact@innovateinc.com',
-                    status: 'Sent',
-                    subject: 'Following up',
-                    timestamp: 'Yesterday'
-                },
-                 {
-                    id: `email-${campaign.id}-2`,
-                    campaignId: campaign.id,
-                    campaignName: getSolutionName(campaign.solutionId),
-                    leadIdentifier: 'jane.doe@techstart.co',
-                    status: 'Bounced',
-                    subject: 'Quick question',
-                    timestamp: '2 days ago'
-                }
-            );
-        }
-    });
-
-    return logs.sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-}
-
-
 export default function EmailLogPage() {
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [solutions, setSolutions] = useState<Solution[]>([]);
   const [emailLogs, setEmailLogs] = useState<EmailLog[]>([]);
 
   useEffect(() => {
-    const campaignsFromStorage = localStorage.getItem('campaigns');
-    const solutionsFromStorage = localStorage.getItem('solutions');
+    const allEmailLogs = JSON.parse(localStorage.getItem('allEmailLogs') || '[]');
+    setEmailLogs(allEmailLogs);
 
-    const loadedCampaigns = campaignsFromStorage ? JSON.parse(campaignsFromStorage) : [];
-    const loadedSolutions = solutionsFromStorage ? JSON.parse(solutionsFromStorage) : [];
+    const handleStorageChange = () => {
+        const updatedLogs = JSON.parse(localStorage.getItem('allEmailLogs') || '[]');
+        setEmailLogs(updatedLogs);
+    };
 
-    setCampaigns(loadedCampaigns);
-    setSolutions(loadedSolutions);
-    
-    setEmailLogs(generateMockEmailLogs(loadedCampaigns, loadedSolutions));
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const getStatusIcon = (status: EmailLog['status']) => {
@@ -183,7 +108,7 @@ export default function EmailLogPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {emailLogs.map((log) => (
+                {emailLogs.sort((a,b) => parseInt(a.timestamp) - parseInt(b.timestamp)).map((log) => (
                   <TableRow key={log.id} className={log.status === 'Needs Attention' ? 'bg-yellow-500/10' : ''}>
                     <TableCell className="font-medium">{log.campaignName}</TableCell>
                     <TableCell>{log.leadIdentifier}</TableCell>

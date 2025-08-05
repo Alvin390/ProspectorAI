@@ -29,6 +29,8 @@ import { z } from 'zod';
 import type { Campaign } from './campaigns/page';
 import type { Solution } from './solutions/data';
 import type { Profile } from './leads/data';
+import type { CallLog } from './calling/page';
+import type { EmailLog } from './email/page';
 
 interface LeadProfileFormState {
   message: string;
@@ -188,7 +190,7 @@ export async function handleConversationalCall(
           leadProfile: validated.leadProfile,
           callScript: validated.callScript,
           userResponse: validated.userResponse,
-          conversationHistory: aiHistory,
+          conversationHistory: aiHistory.length === 1 && aiHistory[0].role === 'user' ? [] : aiHistory,
         };
         
         const result = await conversationalCall(inputForAI);
@@ -213,7 +215,11 @@ export async function handleConversationalCall(
 
 interface OrchestratorState {
     message: string;
-    data: OutreachOrchestratorOutput | null;
+    data: {
+        orchestrationPlan: OutreachOrchestratorOutput;
+        callLogs: CallLog[];
+        emailLogs: EmailLog[];
+    } | null;
     error: string | null;
 }
 
@@ -224,6 +230,9 @@ const mockLeads = [
     { id: 'david chen-DataDriven Co.', name: 'David Chen', company: 'DataDriven Co.', contact: '+1-555-0103' },
     { id: 'emily white-Growth Partners', name: 'Emily White', company: 'Growth Partners', contact: 'emily@growth.partners' }
 ];
+
+const callStatuses: CallLog['status'][] = ['Meeting Booked', 'Not Interested', 'Follow-up Required'];
+const emailStatuses: EmailLog['status'][] = ['Sent', 'Opened', 'Replied', 'Bounced', 'Needs Attention'];
 
 export async function handleRunOrchestrator(campaign: Campaign, solutions: Solution[], profiles: Profile[]): Promise<OrchestratorState> {
     const solution = solutions.find(s => s.id === campaign.solutionId);
@@ -245,10 +254,49 @@ export async function handleRunOrchestrator(campaign: Campaign, solutions: Solut
             leadProfile: leadProfileString,
             potentialLeads: mockLeads // Using mock leads for demonstration
         });
-        
-        console.log('Orchestrator Result:', JSON.stringify(result, null, 2));
 
-        return { message: 'success', data: result, error: null };
+        // Generate mock logs based on the orchestration plan
+        const callLogs: CallLog[] = [];
+        const emailLogs: EmailLog[] = [];
+        const solutionName = solution.name || 'Unknown Solution';
+
+        result.outreachPlan.forEach((step, index) => {
+            const lead = mockLeads.find(l => l.id === step.leadId);
+            if (!lead) return;
+
+            if (step.action === 'CALL') {
+                callLogs.push({
+                    id: `call-${campaign.id}-${index}`,
+                    campaignId: campaign.id,
+                    campaignName: solutionName,
+                    leadIdentifier: lead.contact,
+                    status: callStatuses[index % callStatuses.length], // Cycle through statuses
+                    summary: `AI summary for call to ${lead.name}. ${step.reasoning}`,
+                    timestamp: `${index + 1}h ago`
+                });
+            } else if (step.action === 'EMAIL') {
+                emailLogs.push({
+                    id: `email-${campaign.id}-${index}`,
+                    campaignId: campaign.id,
+                    campaignName: solutionName,
+                    leadIdentifier: lead.contact,
+                    status: emailStatuses[index % emailStatuses.length],
+                    subject: `Re: ${solutionName}`,
+                    timestamp: `${index + 1}h ago`
+                });
+            }
+        });
+
+        return { 
+            message: 'success', 
+            data: {
+                orchestrationPlan: result,
+                callLogs,
+                emailLogs
+            }, 
+            error: null 
+        };
+
     } catch (e: any) {
         return { message: 'error', data: null, error: e.message || 'An unknown error occurred while running the orchestrator.' };
     }
@@ -270,5 +318,3 @@ export async function handleAIEmailFollowUp(
         return { message: 'error', data: null, error: e.message || 'An unknown error occurred.' };
     }
 }
-
-    

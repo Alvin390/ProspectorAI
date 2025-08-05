@@ -26,6 +26,9 @@ import { handleRunOrchestrator } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { type Solution } from '@/app/solutions/data';
 import { type Profile } from '@/app/leads/data';
+import type { CallLog } from '../calling/page';
+import type { EmailLog } from '../email/page';
+
 
 export interface Campaign {
   id: string;
@@ -74,7 +77,7 @@ export default function CampaignsPage() {
     }
   }, [campaigns]);
 
-  const runOrchestratorForCampaign = (campaign: Campaign, isResuming = false) => {
+  const runOrchestratorForCampaign = (campaign: Campaign) => {
      startTransition(async () => {
           const result = await handleRunOrchestrator(campaign, solutions, profiles);
           if (result.message === 'error') {
@@ -83,15 +86,26 @@ export default function CampaignsPage() {
                   description: result.error,
                   variant: 'destructive',
               });
-          } else {
+          } else if (result.data) {
                const solution = solutions.find(s => s.id === campaign.solutionId);
                toast({
-                  title: isResuming ? 'Campaign Resumed!' : 'Orchestrator Started!',
-                  description: `Campaign "${solution?.name}" is now being managed by the AI. View progress on the Orchestration page.`,
+                  title: 'Campaign Started!',
+                  description: `Campaign "${solution?.name}" is now being managed by the AI. View progress on the Orchestration, Calling and Email pages.`,
               });
-               if (result.data) {
-                  localStorage.setItem(`orchestrationPlan_${campaign.id}`, JSON.stringify(result.data));
-               }
+               
+                // Save orchestration plan and dynamic logs
+                localStorage.setItem(`orchestrationPlan_${campaign.id}`, JSON.stringify(result.data.orchestrationPlan));
+
+                const allCallLogs: CallLog[] = JSON.parse(localStorage.getItem('allCallLogs') || '[]');
+                const newCallLogs = result.data.callLogs.filter(log => !allCallLogs.some(existing => existing.id === log.id));
+                localStorage.setItem('allCallLogs', JSON.stringify([...allCallLogs, ...newCallLogs]));
+
+                const allEmailLogs: EmailLog[] = JSON.parse(localStorage.getItem('allEmailLogs') || '[]');
+                const newEmailLogs = result.data.emailLogs.filter(log => !allEmailLogs.some(existing => existing.id === log.id));
+                localStorage.setItem('allEmailLogs', JSON.stringify([...allEmailLogs, ...newEmailLogs]));
+
+                // Manually trigger a storage event to update other tabs/pages
+                window.dispatchEvent(new Event('storage'));
           }
       });
   }
@@ -102,11 +116,16 @@ export default function CampaignsPage() {
   ) => {
     if (editingCampaign) {
       // Update existing campaign
+      const updatedCampaign = { ...editingCampaign, ...campaignData };
       setCampaigns(campaigns.map(c => 
         c.id === editingCampaign.id 
-          ? { ...editingCampaign, ...campaignData } 
+          ? updatedCampaign
           : c
       ));
+      if (updatedCampaign.status === 'Active') {
+        // If the updated campaign is active, we should re-run the orchestrator
+        runOrchestratorForCampaign(updatedCampaign);
+      }
       setEditingCampaign(null);
     } else {
       // Add new campaign
@@ -130,22 +149,12 @@ export default function CampaignsPage() {
     ));
 
     if (newStatus === 'Active') {
-        const planExists = localStorage.getItem(`orchestrationPlan_${campaign.id}`);
-        if (planExists) {
-            // If a plan exists, the campaign is resuming. We don't need to generate a new plan.
-            const solution = solutions.find(s => s.id === campaign.solutionId);
-            toast({
-                title: 'Campaign Resumed!',
-                description: `Campaign "${solution?.name}" is active again and will continue from where it left off.`,
-            });
-        } else {
-            // This is the first time the campaign is being activated.
-            runOrchestratorForCampaign(updatedCampaign);
-        }
-    } else {
-        // Optional: clear the plan when paused
-        // For now, we will keep the plan so it can be resumed.
-        // localStorage.removeItem(`orchestrationPlan_${campaign.id}`);
+      const solution = solutions.find(s => s.id === campaign.solutionId);
+      toast({
+          title: 'Campaign Resumed!',
+          description: `Campaign "${solution?.name}" is active again. Rerunning orchestrator to get latest plan.`,
+      });
+      runOrchestratorForCampaign(updatedCampaign);
     }
   }
 
