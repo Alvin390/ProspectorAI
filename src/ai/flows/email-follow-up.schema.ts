@@ -10,10 +10,10 @@ import { z } from 'genkit';
 export const EmailFollowUpInputSchema = z.object({
   solutionDescription: z.string().describe('A detailed description of the software solution or product being offered.'),
   leadProfile: z.string().describe('The generated lead profile.'),
-  emailThread: z.array(z.object({
-      from: z.string().describe("Who sent the email (e.g., 'user' for the AI, 'lead' for the person)."),
-      content: z.string().describe("The body of the email.")
-  })).describe('The entire email conversation history.'),
+  interactionHistory: z.array(z.object({
+      role: z.string().describe("The role in the interaction (e.g., 'user' for the AI agent, 'lead' for the person)."),
+      text: z.string().describe("The content of the interaction (e.g., the body of the email).")
+  })).describe('The entire interaction history, including all calls and emails.'),
 });
 export type EmailFollowUpInput = z.infer<typeof EmailFollowUpInputSchema>;
 

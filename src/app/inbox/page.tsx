@@ -25,9 +25,9 @@ import { useToast } from '@/hooks/use-toast';
 import type { EmailFollowUpOutput } from '@/ai/flows/email-follow-up.schema';
 import { Textarea } from '@/components/ui/textarea';
 
-interface Email {
-    from: 'user' | 'lead';
-    content: string;
+interface Interaction {
+    role: 'user' | 'lead';
+    text: string;
     timestamp: string;
 }
 
@@ -36,7 +36,7 @@ interface Thread {
     leadIdentifier: string;
     subject: string;
     reasonForAttention: string;
-    thread: Email[];
+    interactionHistory: Interaction[];
     // Mock data for demonstration purposes
     solutionContext: string; 
     profileContext: string;
@@ -48,9 +48,9 @@ const attentionNeededThreads: Thread[] = [
         leadIdentifier: 'pm@solutions.llc',
         subject: 'Re: Your inquiry',
         reasonForAttention: 'Lead is asking for pricing details not available in the provided context.',
-        thread: [
-            { from: 'user', content: 'Hi Brenda,\n\nFollowing up on our brief chat...', timestamp: 'Yesterday' },
-            { from: 'lead', content: 'This sounds interesting. Can you send over your pricing tiers?', timestamp: '5 minutes ago' },
+        interactionHistory: [
+            { role: 'user', text: 'Hi Brenda,\n\nFollowing up on our brief chat...', timestamp: 'Yesterday' },
+            { role: 'lead', text: 'This sounds interesting. Can you send over your pricing tiers?', timestamp: '5 minutes ago' },
         ],
         solutionContext: "Our solution, ProspectorAI, automates lead discovery and outreach to save sales teams hundreds of hours.",
         profileContext: "Brenda is a Project Manager at a mid-sized tech company. She is likely focused on team efficiency and ROI."
@@ -60,10 +60,10 @@ const attentionNeededThreads: Thread[] = [
         leadIdentifier: 'dev@majorcorp.com',
         subject: 'Re: Technical Question',
         reasonForAttention: 'Lead has a complex technical question about API integrations.',
-        thread: [
-            { from: 'user', content: 'Hi Dev Team,\n\nI saw your latest tech blog post...', timestamp: '2 days ago' },
-            { from: 'user', content: 'Following up on the above.', timestamp: '1 day ago' },
-            { from: 'lead', content: 'Thanks for the outreach. Does your system support streaming data ingestion via gRPC, or is it exclusively REST-based?', timestamp: '2 hours ago' },
+        interactionHistory: [
+            { role: 'user', text: 'Hi Dev Team,\n\nI saw your latest tech blog post...', timestamp: '2 days ago' },
+            { role: 'user', text: 'Following up on the above.', timestamp: '1 day ago' },
+            { role: 'lead', text: 'Thanks for the outreach. Does your system support streaming data ingestion via gRPC, or is it exclusively REST-based?', timestamp: '2 hours ago' },
         ],
         solutionContext: "Our solution, ProspectorAI, has a robust REST API for all standard integrations. Streaming ingestion is on the roadmap but not yet available.",
         profileContext: "This is a technical lead from a large corporation. They need precise, honest answers."
@@ -81,7 +81,7 @@ export default function InboxPage() {
             const result = await handleAIEmailFollowUp({
                 solutionDescription: item.solutionContext,
                 leadProfile: item.profileContext,
-                emailThread: item.thread,
+                interactionHistory: item.interactionHistory.map(({role, text}) => ({role, text})),
             });
 
             if (result.message === 'error') {
@@ -181,17 +181,17 @@ export default function InboxPage() {
                                 </div>
                                 <Separator />
                                 <div className="space-y-4">
-                                     {item.thread.map((email, index) => (
+                                     {item.interactionHistory.map((interaction, index) => (
                                          <div key={index} className="flex gap-3">
                                             <div className="flex-shrink-0">
-                                                {email.from === 'user' ? <Bot className="h-5 w-5 text-primary" /> : <User className="h-5 w-5 text-muted-foreground" />}
+                                                {interaction.role === 'user' ? <Bot className="h-5 w-5 text-primary" /> : <User className="h-5 w-5 text-muted-foreground" />}
                                             </div>
                                              <div className="flex-grow">
                                                 <div className="flex items-center justify-between">
-                                                    <span className="font-semibold text-sm">{email.from === 'user' ? 'ProspectorAI' : item.leadIdentifier}</span>
-                                                    <span className="text-xs text-muted-foreground">{email.timestamp}</span>
+                                                    <span className="font-semibold text-sm">{interaction.role === 'user' ? 'ProspectorAI' : item.leadIdentifier}</span>
+                                                    <span className="text-xs text-muted-foreground">{interaction.timestamp}</span>
                                                 </div>
-                                                <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{email.content}</p>
+                                                <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{interaction.text}</p>
                                              </div>
                                          </div>
                                      ))}

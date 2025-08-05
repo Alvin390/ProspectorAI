@@ -51,10 +51,10 @@ START OF FULL CONTEXT
 END OF FULL CONTEXT
 
 **FULL INTERACTION HISTORY (EMAIL AND CALLS):**
-{{#each emailThread}}
+{{#each interactionHistory}}
 ---
-**From: {{from}}**
-{{content}}
+**From: {{role}}**
+{{text}}
 ---
 {{/each}}
 
