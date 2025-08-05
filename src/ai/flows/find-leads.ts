@@ -27,7 +27,7 @@ export const findLeadsFlow = ai.defineFlow(
 
     const prompt = `You are a world-class market research assistant. Your task is to find potential leads based on a given customer profile.
 
-    Analyze the following lead profile, which includes key attributes and online presence details. Based on this profile, generate a list of 5-10 highly plausible, even if fictional, potential leads.
+    Analyze the following lead profile, which includes key attributes and online presence details. Based on this profile, generate a list of 5-10 highly plausible potential leads.
     
     For each lead, you must provide:
     - A full name (e.g., "Alex Johnson")
@@ -35,7 +35,7 @@ export const findLeadsFlow = ai.defineFlow(
     - A unique ID combining the name and company (e.g., "Alex Johnson-Innovate Inc.")
     - Contact information (a plausible email or phone number).
     
-    The leads you generate should be a perfect fit for the profile provided. Think creatively and generate realistic-sounding individuals and companies.
+    The leads you generate should be a perfect fit for the profile provided. Use your training data which includes a vast index of the public web to generate realistic-sounding individuals and companies.
     
     ---
     **Lead Profile to Analyze:**
