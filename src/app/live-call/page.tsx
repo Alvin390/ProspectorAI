@@ -92,14 +92,14 @@ export default function LiveCallPage() {
        state.history = []; 
        state.error = null;
     }
-  }, [selectedCampaignId, state]);
+  }, [selectedCampaignId]);
 
   useEffect(() => {
-    if (state.message === 'success' && state.history) {
+    if (state.message === 'success' && state.history.length > 0) {
         formRef.current?.reset();
         
         const lastMessage = state.history[state.history.length -1];
-        if(lastMessage.role === 'model' && lastMessage.audio && audioRef.current) {
+        if(lastMessage && lastMessage.role === 'model' && lastMessage.audio && audioRef.current) {
             audioRef.current.src = lastMessage.audio;
             audioRef.current.play();
         }
