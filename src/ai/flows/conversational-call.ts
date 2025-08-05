@@ -16,6 +16,7 @@ import {
     type ConversationalCallOutput
 } from './conversational-call.schema';
 import { z } from 'genkit';
+import { googleAI } from '@genkit-ai/googleai';
 
 
 export async function conversationalCall(input: ConversationalCallInput): Promise<ConversationalCallOutput> {
@@ -26,6 +27,8 @@ const prompt = ai.definePrompt({
     name: 'conversationalCallPrompt',
     input: { schema: ConversationalCallInputSchema },
     output: { schema: z.object({ response: z.string() }) },
+    // Use a faster model for conversational turnarounds.
+    model: googleAI.model('gemini-1.5-flash-latest'),
     prompt: `You are an expert AI sales development representative with the persona of a friendly, intelligent, and highly capable human colleague. You are on a live phone call. Your primary goal is to book a meeting with the user (the lead). Your secondary goal is to leave the lead with a positive impression of your company.
 
 **Crucial Persona & Behavior Rules:**
