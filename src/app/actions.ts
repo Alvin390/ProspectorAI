@@ -152,6 +152,7 @@ interface ConversationalCallState {
     message: string;
     data: ConversationalCallOutput | null;
     error: string | null;
+    history: { role: 'user' | 'model'; text: string; audio?: string; }[];
 }
 
 export async function handleConversationalCall(
@@ -166,7 +167,7 @@ export async function handleConversationalCall(
             role: z.string(),
             text: z.string(),
         })),
-        userResponse: z.string(),
+        userResponse: z.string().min(1, 'User response cannot be empty'),
     });
 
     try {
@@ -178,14 +179,24 @@ export async function handleConversationalCall(
             userResponse: formData.get('userResponse'),
         });
 
+        const newHistory = [...validated.conversationHistory, { role: 'user', text: validated.userResponse }];
+        
         const result = await conversationalCall(validated);
-        return { message: 'success', data: result, error: null };
+        
+        const aiResponse = { role: 'model' as const, text: result.responseText, audio: result.audioResponse };
+        
+        return { 
+            message: 'success', 
+            data: result, 
+            error: null,
+            history: [...newHistory, aiResponse]
+        };
 
     } catch (e: any) {
          if (e instanceof z.ZodError) {
-             return { message: 'error', data: null, error: e.errors.map(err => err.message).join(', ') };
+             return { ...prevState, message: 'error', data: null, error: e.errors.map(err => err.message).join(', ') };
          }
-        return { message: 'error', data: null, error: e.message || 'An unknown error occurred.' };
+        return { ...prevState, message: 'error', data: null, error: e.message || 'An unknown error occurred.' };
     }
 }
 

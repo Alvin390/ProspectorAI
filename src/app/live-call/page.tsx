@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef, useOptimistic } from 'react';
+import { useState, useEffect, useRef, useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import {
   Card,
@@ -29,13 +29,19 @@ import { handleConversationalCall } from '@/app/actions';
 import type { Campaign } from '@/app/campaigns/page';
 import type { Profile } from '@/app/leads/data';
 import type { Solution } from '@/app/solutions/data';
-import type { ConversationalCallOutput } from '@/ai/flows/conversational-call.schema';
 
 interface Message {
   role: 'user' | 'model';
   text: string;
   audio?: string;
 }
+
+const initialState = {
+    message: '',
+    data: null,
+    error: null,
+    history: [],
+};
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -66,13 +72,8 @@ export default function LiveCallPage() {
   const [orchestrationPlan, setOrchestrationPlan] = useState<any | null>(null);
 
   const [conversation, setConversation] = useState<Message[]>([]);
-  const [optimisticConversation, addOptimisticMessage] = useOptimistic<Message[], Message>(
-      conversation,
-      (state, newMessage) => [
-          ...state,
-          newMessage
-      ]
-  );
+  
+  const [state, formAction] = useActionState(handleConversationalCall, initialState);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -95,8 +96,27 @@ export default function LiveCallPage() {
       setOrchestrationPlan(plan ? JSON.parse(plan) : null);
       setSelectedLeadId('');
       setConversation([]);
+      // Reset action state when campaign changes
+      initialState.history = []; 
+      initialState.error = null;
     }
   }, [selectedCampaignId]);
+
+  useEffect(() => {
+    if (state.message === 'success' && state.history) {
+        setConversation(state.history);
+        formRef.current?.reset();
+        
+        const lastMessage = state.history[state.history.length -1];
+        if(lastMessage.role === 'model' && lastMessage.audio && audioRef.current) {
+            audioRef.current.src = lastMessage.audio;
+            audioRef.current.play();
+        }
+    }
+    if (state.message === 'error') {
+        console.error("Server Action Error:", state.error);
+    }
+  }, [state]);
 
 
   useEffect(() => {
@@ -107,44 +127,13 @@ export default function LiveCallPage() {
             behavior: 'smooth'
         });
     }
-  }, [optimisticConversation]);
+  }, [conversation]);
 
 
   const activeCampaigns = campaigns.filter(c => c.status === 'Active');
   const selectedCampaign = campaigns.find(c => c.id === selectedCampaignId);
   const selectedSolution = selectedCampaign ? solutions.find(s => s.id === selectedCampaign.solutionId) : null;
   const selectedProfile = selectedCampaign ? profiles.find(p => p.id === selectedCampaign.leadProfileId) : null;
-  
-  const formAction = async (formData: FormData) => {
-    const userResponse = formData.get('userResponse') as string;
-    addOptimisticMessage({ role: 'user', text: userResponse });
-    formRef.current?.reset();
-    
-    const result = await handleConversationalCall(null, formData);
-    
-    if (result.message === 'success' && result.data) {
-        const aiResponse: ConversationalCallOutput = result.data;
-        setConversation(prev => [
-            ...prev,
-            { role: 'user', text: userResponse },
-            { role: 'model', text: aiResponse.responseText, audio: aiResponse.audioResponse }
-        ]);
-
-        if (aiResponse.audioResponse && audioRef.current) {
-            audioRef.current.src = aiResponse.audioResponse;
-            audioRef.current.play();
-        }
-    } else if (result.message === 'error') {
-        console.error("Server Action Error:", result.error);
-        // Optionally handle the UI feedback for the error
-        // Revert the optimistic update if needed, though often not necessary for chat
-        setConversation(prev => [
-            ...prev,
-            { role: 'user', text: userResponse },
-            { role: 'model', text: `Sorry, an error occurred: ${result.error}` }
-        ]);
-    }
-  };
   
   const leadProfileString = selectedProfile?.profileData ? `Attributes: ${selectedProfile.profileData.attributes}\nOnline Presence: ${selectedProfile.profileData.onlinePresence}` : 'Profile not available.';
 
@@ -227,7 +216,7 @@ export default function LiveCallPage() {
                 <>
                     <ScrollArea className="flex-grow pr-4" ref={scrollAreaRef}>
                         <div className="space-y-6">
-                        {optimisticConversation.map((msg, index) => (
+                        {conversation.map((msg, index) => (
                             <div key={index} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
                             {msg.role === 'model' && <Bot className="h-6 w-6 text-primary flex-shrink-0" />}
                             <div className={`rounded-lg p-3 max-w-sm ${msg.role === 'model' ? 'bg-secondary' : 'bg-primary text-primary-foreground'}`}>
@@ -237,6 +226,12 @@ export default function LiveCallPage() {
                             </div>
                         ))}
                         </div>
+                         {state.error && (
+                            <Alert variant="destructive" className="mt-4">
+                                <AlertTitle>Error</AlertTitle>
+                                <AlertDescription>{state.error}</AlertDescription>
+                            </Alert>
+                        )}
                     </ScrollArea>
                     <Separator className="my-4" />
                     <form action={formAction} ref={formRef} className="flex gap-2">
