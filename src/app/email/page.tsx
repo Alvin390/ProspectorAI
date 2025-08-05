@@ -155,7 +155,7 @@ export default function EmailLogPage() {
       </CardContent>
     </Card>
     <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent className="w-[400px] sm:w-[640px]">
+        <SheetContent className="w-[400px] sm:w-[640px] flex flex-col">
           {selectedEmail && (
             <>
                 <SheetHeader>
@@ -164,10 +164,10 @@ export default function EmailLogPage() {
                         Email sent to {selectedEmail.leadIdentifier}
                     </SheetDescription>
                 </SheetHeader>
-                <div className="grid gap-4 py-4">
-                    <div className="rounded-md border bg-muted p-4">
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{selectedEmail.body}</p>
-                    </div>
+                <div className="py-4 flex-grow">
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap h-full rounded-md border bg-muted p-4">
+                      {selectedEmail.body}
+                    </p>
                 </div>
             </>
           )}
