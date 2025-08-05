@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useTransition, useRef } from 'react';
+import { useState, useTransition } from 'react';
 import {
   Card,
   CardContent,
@@ -24,10 +24,7 @@ import { Switch } from '@/components/ui/switch';
 import { CampaignCreationForm } from './campaign-creation-form';
 import { handleRunOrchestrator } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
-import { type Solution } from '@/app/solutions/data';
-import { type Profile } from '@/app/leads/data';
-import type { CallLog } from '../calling/page';
-import type { EmailLog } from '../email/page';
+import { useData } from '../data-provider';
 
 
 export interface Campaign {
@@ -40,42 +37,11 @@ export interface Campaign {
 }
 
 export default function CampaignsPage() {
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [solutions, setSolutions] = useState<Solution[]>([]);
-  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const { campaigns, setCampaigns, solutions, profiles, addCallLogs, addEmailLogs, isLoading } = useData();
   const [activeTab, setActiveTab] = useState('tracker');
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
-  const hasLoaded = useRef(false);
-
-  useEffect(() => {
-    // Load state from localStorage on the client, only once.
-    if (!hasLoaded.current) {
-        const savedCampaigns = localStorage.getItem('campaigns');
-        if (savedCampaigns) {
-            setCampaigns(JSON.parse(savedCampaigns));
-        }
-
-        const savedSolutions = localStorage.getItem('solutions');
-        if (savedSolutions) {
-            setSolutions(JSON.parse(savedSolutions));
-        }
-
-        const savedProfiles = localStorage.getItem('profiles');
-        if(savedProfiles) {
-            setProfiles(JSON.parse(savedProfiles));
-        }
-        hasLoaded.current = true;
-    }
-  }, []);
-
-  useEffect(() => {
-    // This effect runs only on the client and after initial load.
-    if (hasLoaded.current) {
-        localStorage.setItem('campaigns', JSON.stringify(campaigns));
-    }
-  }, [campaigns]);
 
   const runOrchestratorForCampaign = (campaign: Campaign) => {
      startTransition(async () => {
@@ -93,18 +59,15 @@ export default function CampaignsPage() {
                   description: `Campaign "${solution?.name}" is now being managed by the AI. View progress on the Orchestration, Calling and Email pages.`,
               });
                
-                // Save orchestration plan and dynamic logs
                 localStorage.setItem(`orchestrationPlan_${campaign.id}`, JSON.stringify(result.data.orchestrationPlan));
+                
+                if (result.data.callLogs.length > 0) {
+                  addCallLogs(result.data.callLogs);
+                }
+                if (result.data.emailLogs.length > 0) {
+                  addEmailLogs(result.data.emailLogs);
+                }
 
-                const allCallLogs: CallLog[] = JSON.parse(localStorage.getItem('allCallLogs') || '[]');
-                const newCallLogs = result.data.callLogs.filter(log => !allCallLogs.some(existing => existing.id === log.id));
-                localStorage.setItem('allCallLogs', JSON.stringify([...allCallLogs, ...newCallLogs]));
-
-                const allEmailLogs: EmailLog[] = JSON.parse(localStorage.getItem('allEmailLogs') || '[]');
-                const newEmailLogs = result.data.emailLogs.filter(log => !allEmailLogs.some(existing => existing.id === log.id));
-                localStorage.setItem('allEmailLogs', JSON.stringify([...allEmailLogs, ...newEmailLogs]));
-
-                // Manually trigger a storage event to update other tabs/pages
                 window.dispatchEvent(new Event('storage'));
           }
       });
@@ -175,6 +138,10 @@ export default function CampaignsPage() {
   const getSolutionNameById = (id: string) => {
     const solution = solutions.find(s => s.id === id);
     return solution ? solution.name : 'Unknown Solution';
+  }
+
+  if (isLoading) {
+    return <div>Loading campaigns...</div>
   }
 
   return (

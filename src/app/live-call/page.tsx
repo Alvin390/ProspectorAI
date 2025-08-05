@@ -26,9 +26,7 @@ import { Bot, User, Phone, Send, Loader2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { handleConversationalCall } from '@/app/actions';
 
-import type { Campaign } from '@/app/campaigns/page';
-import type { Profile } from '@/app/leads/data';
-import type { Solution } from '@/app/solutions/data';
+import { useData } from '../data-provider';
 
 
 const initialState = {
@@ -58,9 +56,7 @@ function SubmitButton() {
 }
 
 export default function LiveCallPage() {
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [solutions, setSolutions] = useState<Solution[]>([]);
-  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const { campaigns, solutions, profiles, isLoading } = useData();
   
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>('');
   const [selectedLeadId, setSelectedLeadId] = useState<string>('');
@@ -72,16 +68,6 @@ export default function LiveCallPage() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
-
-  useEffect(() => {
-    const savedCampaigns = localStorage.getItem('campaigns');
-    const savedSolutions = localStorage.getItem('solutions');
-    const savedProfiles = localStorage.getItem('profiles');
-
-    setCampaigns(savedCampaigns ? JSON.parse(savedCampaigns) : []);
-    setSolutions(savedSolutions ? JSON.parse(savedSolutions) : []);
-    setProfiles(savedProfiles ? JSON.parse(savedProfiles) : []);
-  }, []);
 
   useEffect(() => {
     if (selectedCampaignId) {
@@ -99,7 +85,7 @@ export default function LiveCallPage() {
         formRef.current?.reset();
         
         const lastMessage = state.history[state.history.length -1];
-        if(lastMessage && lastMessage.role === 'model' && lastMessage.audio && audioRef.current) {
+        if(lastMessage.role === 'model' && lastMessage.audio && audioRef.current) {
             audioRef.current.src = lastMessage.audio;
             audioRef.current.play();
         }
@@ -127,6 +113,10 @@ export default function LiveCallPage() {
   const selectedProfile = selectedCampaign ? profiles.find(p => p.id === selectedCampaign.leadProfileId) : null;
   
   const leadProfileString = selectedProfile?.profileData ? `Attributes: ${selectedProfile.profileData.attributes}\nOnline Presence: ${selectedProfile.profileData.onlinePresence}` : 'Profile not available.';
+
+  if (isLoading) {
+    return <div>Loading live call simulator...</div>
+  }
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">

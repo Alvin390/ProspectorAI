@@ -28,31 +28,24 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Bot, Mail, Phone } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import type { Campaign } from '@/app/campaigns/page';
-import type { Solution } from '@/app/solutions/data';
 import type { OutreachOrchestratorOutput } from '@/ai/flows/outreach-orchestrator.schema';
+import { useData } from '../data-provider';
+import type { Campaign } from '../campaigns/page';
 
 export default function OrchestrationPage() {
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [solutions, setSolutions] = useState<Solution[]>([]);
+  const { campaigns, solutions, isLoading } = useData();
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>('');
   const [orchestrationPlan, setOrchestrationPlan] = useState<OutreachOrchestratorOutput | null>(null);
 
   useEffect(() => {
-    const savedCampaigns = localStorage.getItem('campaigns');
-    const savedSolutions = localStorage.getItem('solutions');
-    
-    const loadedCampaigns = savedCampaigns ? JSON.parse(savedCampaigns) : [];
-    setCampaigns(loadedCampaigns);
-    setSolutions(savedSolutions ? JSON.parse(savedSolutions) : []);
+    if (isLoading) return;
 
-    const activeCampaigns = loadedCampaigns.filter((c: Campaign) => c.status === 'Active');
+    const activeCampaigns = campaigns.filter((c: Campaign) => c.status === 'Active');
     if (activeCampaigns.length > 0 && !selectedCampaignId) {
         const firstActiveId = activeCampaigns[0].id;
         setSelectedCampaignId(firstActiveId);
     }
-  }, []);
+  }, [isLoading, campaigns, selectedCampaignId]);
   
   useEffect(() => {
       if (selectedCampaignId) {
@@ -62,8 +55,6 @@ export default function OrchestrationPage() {
       }
   }, [selectedCampaignId]);
 
-
-  const activeCampaigns = campaigns.filter(c => c.status === 'Active');
 
   const getCampaignName = (campaignId: string) => {
     const campaign = campaigns.find(c => c.id === campaignId);
@@ -114,6 +105,9 @@ export default function OrchestrationPage() {
     }
   }
 
+  if (isLoading) {
+    return <div>Loading orchestration plans...</div>
+  }
 
   return (
     <Card>
@@ -184,7 +178,7 @@ export default function OrchestrationPage() {
                 <Bot className="h-4 w-4" />
                 <AlertTitle>No Plan to Display</AlertTitle>
                 <AlertDescription>
-                    {activeCampaigns.length > 0 ? 
+                    {campaigns.filter(c => c.status === 'Active').length > 0 ? 
                         "Select an active campaign and click 'Show Plan' to see its strategy. If a plan doesn't appear, one may not have been generated yet." :
                         "There are no active campaigns. Please activate a campaign on the Campaigns page to see its orchestration plan."
                     }

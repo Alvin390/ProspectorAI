@@ -1,7 +1,6 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -20,6 +19,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Phone, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { useData } from '../data-provider';
 
 export interface CallLog {
   id: string;
@@ -32,21 +32,7 @@ export interface CallLog {
 }
 
 export default function CallingPage() {
-  const [callLogs, setCallLogs] = useState<CallLog[]>([]);
-
-  useEffect(() => {
-    // This effect will run when the component mounts and whenever campaigns change.
-    const allCallLogs = JSON.parse(localStorage.getItem('allCallLogs') || '[]');
-    setCallLogs(allCallLogs);
-
-    const handleStorageChange = () => {
-        const updatedLogs = JSON.parse(localStorage.getItem('allCallLogs') || '[]');
-        setCallLogs(updatedLogs);
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+  const { allCallLogs, isLoading } = useData();
 
   const getStatusIcon = (status: CallLog['status']) => {
     switch (status) {
@@ -70,6 +56,9 @@ export default function CallingPage() {
     }
   }
 
+  if (isLoading) {
+    return <div>Loading call logs...</div>;
+  }
 
   return (
     <Card>
@@ -80,7 +69,7 @@ export default function CallingPage() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-       {callLogs.length > 0 ? (
+       {allCallLogs.length > 0 ? (
            <Table>
               <TableHeader>
                 <TableRow>
@@ -92,7 +81,7 @@ export default function CallingPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {callLogs.sort((a,b) => parseInt(a.timestamp) - parseInt(b.timestamp)).map((log) => (
+                {allCallLogs.sort((a,b) => parseInt(a.timestamp) - parseInt(b.timestamp)).map((log) => (
                   <TableRow key={log.id}>
                     <TableCell className="font-medium">{log.campaignName}</TableCell>
                     <TableCell>{log.leadIdentifier}</TableCell>

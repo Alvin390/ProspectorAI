@@ -19,9 +19,7 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { TrendingUp, Users, Target, CheckCircle } from 'lucide-react';
 import type { ChartConfig } from '@/components/ui/chart';
-import type { Campaign } from './campaigns/page';
-import type { CallLog } from './calling/page';
-import type { EmailLog } from './email/page';
+import { useData } from './data-provider';
 
 
 const chartConfig = {
@@ -35,14 +33,8 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-const mockMeetings = [
-    { lead: "Alex Johnson" },
-    { lead: "Brenda Smith" },
-    { lead: "Carlos Gomez" }
-];
-
-
 export default function Dashboard() {
+    const { campaigns, allCallLogs, allEmailLogs, isLoading } = useData();
     const [stats, setStats] = useState({
         activeCampaigns: 0,
         meetingsScheduled: 0,
@@ -60,56 +52,45 @@ export default function Dashboard() {
 
 
     useEffect(() => {
-        const updateDashboard = () => {
-            if (typeof window === 'undefined') return;
+      if (isLoading) return;
 
-            const savedCampaigns = localStorage.getItem('campaigns');
-            const loadedCampaigns: Campaign[] = savedCampaigns ? JSON.parse(savedCampaigns) : [];
-            
-            const activeCampaigns = loadedCampaigns.filter((c: Campaign) => c.status === 'Active').length;
-            
-            const callLogs: CallLog[] = JSON.parse(localStorage.getItem('allCallLogs') || '[]');
-            const emailLogs: EmailLog[] = JSON.parse(localStorage.getItem('allEmailLogs') || '[]');
-            
-            // In a real app, meeting status would come from the calendar or CRM.
-            // For now, we'll count calls with "Meeting Booked" status.
-            const meetingsScheduled = callLogs.filter(log => log.status === 'Meeting Booked').length;
-            
-            const callLeads = callLogs.map(l => l.leadIdentifier);
-            const emailLeads = emailLogs.map(l => l.leadIdentifier);
-            const allContactedLeads = new Set([...callLeads, ...emailLeads]);
-            const leadsContacted = allContactedLeads.size;
+      const activeCampaigns = campaigns.filter((c) => c.status === 'Active').length;
+      
+      const meetingsScheduled = allCallLogs.filter(log => log.status === 'Meeting Booked').length;
+      
+      const callLeads = allCallLogs.map(l => l.leadIdentifier);
+      const emailLeads = allEmailLogs.map(l => l.leadIdentifier);
+      const allContactedLeads = new Set([...callLeads, ...emailLeads]);
+      const leadsContacted = allContactedLeads.size;
 
-            const successRate = leadsContacted > 0 ? Math.round((meetingsScheduled / leadsContacted) * 100) : 0;
+      const successRate = leadsContacted > 0 ? Math.round((meetingsScheduled / leadsContacted) * 100) : 0;
 
-            setStats({
-                activeCampaigns,
-                meetingsScheduled,
-                leadsContacted,
-                successRate,
-            });
+      setStats({
+          activeCampaigns,
+          meetingsScheduled,
+          leadsContacted,
+          successRate,
+      });
 
-            // Update current month's chart data with live stats
-            setChartData(prevData => {
-                const newData = [...prevData];
-                const currentMonthIndex = newData.findIndex(d => d.month === 'June');
-                if (currentMonthIndex !== -1) {
-                    newData[currentMonthIndex] = { 
-                        ...newData[currentMonthIndex], 
-                        meetings: meetingsScheduled, 
-                        contacted: leadsContacted 
-                    };
-                }
-                return newData;
-            });
-        }
+      // Update current month's chart data with live stats
+      setChartData(prevData => {
+          const newData = [...prevData];
+          const currentMonthIndex = newData.findIndex(d => d.month === 'June');
+          if (currentMonthIndex !== -1) {
+              newData[currentMonthIndex] = { 
+                  ...newData[currentMonthIndex], 
+                  meetings: meetingsScheduled, 
+                  contacted: leadsContacted 
+              };
+          }
+          return newData;
+      });
         
-        updateDashboard();
-        window.addEventListener('storage', updateDashboard);
-        return () => window.removeEventListener('storage', updateDashboard);
+    }, [campaigns, allCallLogs, allEmailLogs, isLoading]);
 
-    }, []);
-
+    if (isLoading) {
+      return <div>Loading dashboard...</div>
+    }
 
   return (
     <div className="flex flex-col gap-6">

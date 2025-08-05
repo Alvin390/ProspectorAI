@@ -1,7 +1,6 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -22,6 +21,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Mail, CheckCircle, Clock, Send, AlertCircle as BounceIcon, AlertTriangle, Inbox } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { useData } from '../data-provider';
 
 export interface EmailLog {
   id: string;
@@ -34,20 +34,7 @@ export interface EmailLog {
 }
 
 export default function EmailLogPage() {
-  const [emailLogs, setEmailLogs] = useState<EmailLog[]>([]);
-
-  useEffect(() => {
-    const allEmailLogs = JSON.parse(localStorage.getItem('allEmailLogs') || '[]');
-    setEmailLogs(allEmailLogs);
-
-    const handleStorageChange = () => {
-        const updatedLogs = JSON.parse(localStorage.getItem('allEmailLogs') || '[]');
-        setEmailLogs(updatedLogs);
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+  const { allEmailLogs, isLoading } = useData();
 
   const getStatusIcon = (status: EmailLog['status']) => {
     switch (status) {
@@ -86,6 +73,9 @@ export default function EmailLogPage() {
     return '';
   }
 
+  if (isLoading) {
+    return <div>Loading email logs...</div>;
+  }
 
   return (
     <Card>
@@ -96,7 +86,7 @@ export default function EmailLogPage() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-       {emailLogs.length > 0 ? (
+       {allEmailLogs.length > 0 ? (
            <Table>
               <TableHeader>
                 <TableRow>
@@ -108,7 +98,7 @@ export default function EmailLogPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {emailLogs.sort((a,b) => parseInt(a.timestamp) - parseInt(b.timestamp)).map((log) => (
+                {allEmailLogs.sort((a,b) => parseInt(a.timestamp) - parseInt(b.timestamp)).map((log) => (
                   <TableRow key={log.id} className={log.status === 'Needs Attention' ? 'bg-yellow-500/10' : ''}>
                     <TableCell className="font-medium">{log.campaignName}</TableCell>
                     <TableCell>{log.leadIdentifier}</TableCell>

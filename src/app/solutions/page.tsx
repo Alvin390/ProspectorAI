@@ -37,42 +37,17 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { initialSolutions, type Solution } from './data';
 import { useToast } from '@/hooks/use-toast';
+import { useData } from '../data-provider';
+import type { Solution } from './data';
 
 export default function SolutionsPage() {
-  const [solutions, setSolutions] = useState<Solution[]>([]);
+  const { solutions, setSolutions, isLoading } = useData();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [editingSolution, setEditingSolution] = useState<Solution | null>(null);
   const [currentSolution, setCurrentSolution] = useState<Omit<Solution, 'id'>>({ name: '', description: '' });
-  const hasLoaded = useRef(false);
 
   const { toast } = useToast();
-
-   useEffect(() => {
-    if (!hasLoaded.current) {
-      const savedSolutions = localStorage.getItem('solutions');
-      if (savedSolutions) {
-        try {
-          const parsed = JSON.parse(savedSolutions);
-          setSolutions(parsed);
-        } catch {
-          setSolutions(initialSolutions);
-        }
-      } else {
-        setSolutions(initialSolutions);
-      }
-      hasLoaded.current = true;
-    }
-  }, []);
-
-
-  useEffect(() => {
-     if (hasLoaded.current) {
-        localStorage.setItem('solutions', JSON.stringify(solutions));
-    }
-  }, [solutions]);
-
 
   const handleOpenSheet = (solution: Solution | null) => {
     if (solution) {
@@ -145,6 +120,9 @@ export default function SolutionsPage() {
     setCurrentSolution(prev => ({ ...prev, [id]: value }));
   };
 
+  if (isLoading) {
+    return <div>Loading solutions...</div>;
+  }
 
   return (
     <div className="grid gap-6">

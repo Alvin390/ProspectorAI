@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -28,52 +28,16 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { LeadProfilingForm } from './lead-profiling-form';
-import { initialSolutions, type Solution } from '@/app/solutions/data';
 import type { GenerateLeadProfileOutput } from '@/ai/flows/generate-lead-profile.schema';
 import { useToast } from '@/hooks/use-toast';
-import { initialProfiles, type Profile } from './data';
+import { type Profile } from './data';
+import { useData } from '../data-provider';
 
 
 export default function LeadProfilingPage() {
-  const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [solutions, setSolutions] = useState<Solution[]>([]);
+  const { profiles, setProfiles, solutions, isLoading } = useData();
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
   const { toast } = useToast();
-  const hasLoaded = useRef(false);
-
-  useEffect(() => {
-    if (!hasLoaded.current) {
-        const savedProfiles = localStorage.getItem('profiles');
-        if (savedProfiles) {
-            try {
-                setProfiles(JSON.parse(savedProfiles));
-            } catch {
-                setProfiles(initialProfiles);
-            }
-        } else {
-          setProfiles(initialProfiles);
-        }
-
-        const savedSolutions = localStorage.getItem('solutions');
-        if (savedSolutions) {
-            try {
-                setSolutions(JSON.parse(savedSolutions));
-            } catch {
-                setSolutions(initialSolutions);
-            }
-        } else {
-            setSolutions(initialSolutions);
-        }
-        hasLoaded.current = true;
-    }
-  }, []);
-
-  useEffect(() => {
-    if (hasLoaded.current) {
-        localStorage.setItem('profiles', JSON.stringify(profiles));
-    }
-  }, [profiles]);
-  
 
   const handleProfileSave = (profileData: Partial<Profile>, generatedData: GenerateLeadProfileOutput) => {
     if (profileData.id && editingProfile) { // This is an update
@@ -114,6 +78,9 @@ export default function LeadProfilingPage() {
     setEditingProfile(null);
   }
 
+  if (isLoading) {
+    return <div>Loading data...</div>;
+  }
 
   return (
     <div className="grid gap-6">
