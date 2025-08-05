@@ -156,12 +156,11 @@ export function CampaignCreationForm({ solutions, profiles, onCampaignSubmit, ed
       <form action={formAction} ref={formRef} className="space-y-4">
         <input type="hidden" name="solutions" value={JSON.stringify(solutions)} />
         <input type="hidden" name="profiles" value={JSON.stringify(profiles)} />
-        <input type="hidden" name="solutionId" value={selectedSolutionId} />
-        <input type="hidden" name="leadProfileId" value={selectedLeadProfileId} />
+        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
                 <Label htmlFor="solution">Solution</Label>
-                <Select name="solution-select" required value={selectedSolutionId} onValueChange={setSelectedSolutionId} disabled={!!generatedContent}>
+                <Select name="solutionId" required value={selectedSolutionId} onValueChange={setSelectedSolutionId} disabled={!!generatedContent}>
                     <SelectTrigger id="solution">
                         <SelectValue placeholder="Select a solution" />
                     </SelectTrigger>
@@ -174,7 +173,7 @@ export function CampaignCreationForm({ solutions, profiles, onCampaignSubmit, ed
             </div>
             <div className="space-y-2">
                 <Label htmlFor="lead-profile">Lead Profile</Label>
-                <Select name="leadProfile-select" required value={selectedLeadProfileId} onValueChange={setSelectedLeadProfileId} disabled={!!generatedContent}>
+                <Select name="leadProfileId" required value={selectedLeadProfileId} onValueChange={setSelectedLeadProfileId} disabled={!!generatedContent}>
                 <SelectTrigger id="lead-profile">
                     <SelectValue placeholder="Select a lead profile" />
                 </SelectTrigger>
