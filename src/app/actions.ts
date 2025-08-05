@@ -154,7 +154,7 @@ interface ConversationalCallState {
     message: string;
     data: ConversationalCallOutput | null;
     error: string | null;
-    history: { role: 'user' | 'model'; text: string; audio?: string; }[];
+    history: { role: 'agent' | 'lead'; text: string; audio: string; }[];
 }
 
 export async function handleConversationalCall(
@@ -166,7 +166,6 @@ export async function handleConversationalCall(
         leadProfile: z.string(),
         callScript: z.string(),
         conversationHistory: z.string().transform(str => JSON.parse(str)),
-        userResponse: z.string().min(1, 'User response cannot be empty'),
     });
 
     try {
@@ -175,42 +174,58 @@ export async function handleConversationalCall(
             leadProfile: formData.get('leadProfile'),
             callScript: formData.get('callScript'),
             conversationHistory: formData.get('conversationHistory'),
-            userResponse: formData.get('userResponse'),
         });
-
-        const clientHistory = validated.conversationHistory;
-        const newUserMessage = { role: 'user' as const, text: validated.userResponse };
-
-        let aiHistory = [...clientHistory.map(({ role, text }: {role: string, text: string}) => ({ role, text }))];
         
-        // If the history is empty, this is the first turn after the opening script.
-        // Prepend the call script as the first "model" utterance.
+        let clientHistory = validated.conversationHistory;
+
+        // The history sent to the AI only needs the role and text
+        let aiHistory = clientHistory.map(({ role, text }: {role: string, text: string}) => ({ role, text }));
+        
+        // If the history is empty, this is the first turn.
+        // Prepend the call script as the first "agent" utterance.
         if (aiHistory.length === 0 && validated.callScript) {
-            aiHistory.unshift({ role: 'model', text: validated.callScript});
+            aiHistory.unshift({ role: 'agent', text: validated.callScript});
         }
         
-        // Add the latest user response to the history for the AI
-        aiHistory.push({ role: 'user', text: validated.userResponse });
-
-
         const inputForAI: ConversationalCallInput = {
           solutionDescription: validated.solutionDescription,
           leadProfile: validated.leadProfile,
-          userResponse: validated.userResponse,
-          // The full history for the AI includes everything up to the latest user message
+          callScript: validated.callScript,
           conversationHistory: aiHistory,
         };
         
         const result = await conversationalCall(inputForAI);
         
-        const aiResponse = { role: 'model' as const, text: result.responseText, audio: result.audioResponse };
+        // Create the new turn objects with all data for the client
+        const agentTurn = { 
+            role: 'agent' as const, 
+            text: result.agentResponseText, 
+            audio: result.agentResponseAudio 
+        };
+        const leadTurn = {
+            role: 'lead' as const,
+            text: result.leadResponseText,
+            audio: result.leadResponseAudio
+        }
         
+        // If this was the first turn, add the agent's opening line to the start of the history
+        if(clientHistory.length === 0) {
+            const openingAudio = await textToSpeech(validated.callScript);
+            clientHistory.push({
+                role: 'agent',
+                text: validated.callScript,
+                audio: openingAudio.media
+            })
+        }
+
+        // Add the new turns to the history
+        const updatedHistory = [...clientHistory, agentTurn, leadTurn];
+
         return { 
             message: 'success', 
             data: result, 
             error: null,
-            // Return the full history (including new user message and AI response) to the client
-            history: [...clientHistory, newUserMessage, aiResponse]
+            history: updatedHistory
         };
 
     } catch (e: any) {

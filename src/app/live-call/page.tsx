@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef, useActionState } from 'react';
+import { useState, useEffect, useRef, useActionState, useTransition } from 'react';
 import { useFormStatus } from 'react-dom';
 import {
   Card,
@@ -19,13 +19,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Bot, User, Phone, Send, Loader2 } from 'lucide-react';
+import { Bot, User, Phone, Loader2, PlayCircle, PhoneOff } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { handleConversationalCall } from '@/app/actions';
-
 import { useData } from '../data-provider';
 
 
@@ -36,19 +34,19 @@ const initialState = {
     history: [],
 };
 
-function SubmitButton() {
+function SubmitButton({ disabled }: { disabled?: boolean }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending}>
+    <Button type="submit" disabled={disabled || pending} className="w-full">
       {pending ? (
         <>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Sending...
+          Thinking...
         </>
       ) : (
         <>
-          <Send className="mr-2 h-4 w-4" />
-          Send Response
+          <PlayCircle className="mr-2 h-4 w-4" />
+          Continue Conversation
         </>
       )}
     </Button>
@@ -57,6 +55,7 @@ function SubmitButton() {
 
 export default function LiveCallPage() {
   const { campaigns, solutions, profiles, isLoading } = useData();
+  const [isPending, startTransition] = useTransition();
   
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>('');
   const [selectedLeadId, setSelectedLeadId] = useState<string>('');
@@ -67,6 +66,8 @@ export default function LiveCallPage() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const [isCallFinished, setIsCallFinished] = useState(false);
+  const [currentTurn, setCurrentTurn] = useState(0);
 
 
   useEffect(() => {
@@ -74,48 +75,69 @@ export default function LiveCallPage() {
       const plan = localStorage.getItem(`orchestrationPlan_${selectedCampaignId}`);
       setOrchestrationPlan(plan ? JSON.parse(plan) : null);
       setSelectedLeadId('');
-      // Reset action state when campaign changes
-       state.history = []; 
-       state.error = null;
+      state.history = []; 
+      state.error = null;
+      setIsCallFinished(false);
+      setCurrentTurn(0);
     }
   }, [selectedCampaignId]);
-
+  
   useEffect(() => {
-    if (state.message === 'success' && state.history.length > 0) {
-        formRef.current?.reset();
+    // This is the core audio playback logic
+    if (state.message === 'success' && state.history.length > 0 && audioRef.current) {
         
-        const lastMessage = state.history[state.history.length -1];
-        if(lastMessage.role === 'model' && lastMessage.audio && audioRef.current) {
-            audioRef.current.src = lastMessage.audio;
-            audioRef.current.play();
+        if (state.data?.isHangUp) {
+            setIsCallFinished(true);
         }
+
+        const playTurn = (turnIndex: number) => {
+             if (turnIndex >= state.history.length) {
+                // We've played all available audio, ready for the user to continue
+                return;
+             }
+             const turn = state.history[turnIndex];
+             if (turn.audio && audioRef.current) {
+                audioRef.current.src = turn.audio;
+                audioRef.current.play();
+                audioRef.current.onended = () => {
+                    playTurn(turnIndex + 1); // Play the next person's audio
+                };
+             } else {
+                 playTurn(turnIndex + 1); // Skip if no audio
+             }
+        }
+        
+        // Start playing from the first new turn
+        playTurn(currentTurn);
+        setCurrentTurn(state.history.length);
     }
-    if (state.message === 'error') {
-        console.error("Server Action Error:", state.error);
-    }
-  }, [state]);
+  }, [state.history]);
 
 
   useEffect(() => {
-    // Scroll to the bottom of the conversation
     if (scrollAreaRef.current) {
         scrollAreaRef.current.scrollTo({
             top: scrollAreaRef.current.scrollHeight,
             behavior: 'smooth'
         });
     }
-  }, [state.history]);
+  }, [state.history, isCallFinished]);
 
 
   const activeCampaigns = campaigns.filter(c => c.status === 'Active');
   const selectedCampaign = campaigns.find(c => c.id === selectedCampaignId);
   const selectedSolution = selectedCampaign ? solutions.find(s => s.id === selectedCampaign.solutionId) : null;
   const selectedProfile = selectedCampaign ? profiles.find(p => p.id === selectedCampaign.leadProfileId) : null;
-  
   const leadProfileString = selectedProfile?.profileData ? `Attributes: ${selectedProfile.profileData.attributes}\nOnline Presence: ${selectedProfile.profileData.onlinePresence}` : 'Profile not available.';
 
   if (isLoading) {
     return <div>Loading live call simulator...</div>
+  }
+
+  const handleFormAction = (formData: FormData) => {
+    startTransition(() => {
+        formAction(formData);
+    })
   }
 
   return (
@@ -129,7 +151,7 @@ export default function LiveCallPage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="campaign-select">Active Campaign</Label>
-              <Select value={selectedCampaignId} onValueChange={setSelectedCampaignId}>
+              <Select value={selectedCampaignId} onValueChange={setSelectedCampaignId} disabled={isPending}>
                 <SelectTrigger id="campaign-select">
                   <SelectValue placeholder="Select a campaign..." />
                 </SelectTrigger>
@@ -145,7 +167,7 @@ export default function LiveCallPage() {
             {selectedCampaignId && (
               <div className="space-y-2">
                 <Label htmlFor="lead-select">Lead to Call</Label>
-                <Select value={selectedLeadId} onValueChange={setSelectedLeadId}>
+                <Select value={selectedLeadId} onValueChange={setSelectedLeadId} disabled={isPending}>
                   <SelectTrigger id="lead-select">
                     <SelectValue placeholder="Select a lead..." />
                   </SelectTrigger>
@@ -161,27 +183,6 @@ export default function LiveCallPage() {
             )}
           </CardContent>
         </Card>
-        {selectedLeadId && selectedCampaign && selectedSolution && selectedProfile && (
-            <Card>
-                <CardHeader>
-                    <CardTitle>Call Briefing</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4 text-sm">
-                    <div>
-                        <h4 className="font-semibold">Solution</h4>
-                        <p className="text-muted-foreground">{selectedSolution.name}</p>
-                    </div>
-                     <div>
-                        <h4 className="font-semibold">Lead Profile</h4>
-                        <p className="text-muted-foreground whitespace-pre-wrap">{leadProfileString}</p>
-                    </div>
-                    <div>
-                        <h4 className="font-semibold">Initial Script</h4>
-                        <p className="text-muted-foreground">{selectedCampaign.callScript}</p>
-                    </div>
-                </CardContent>
-            </Card>
-        )}
       </div>
 
       <div className="lg:col-span-2">
@@ -197,24 +198,23 @@ export default function LiveCallPage() {
                 <>
                     <ScrollArea className="flex-grow pr-4" ref={scrollAreaRef}>
                         <div className="space-y-6">
-                         {state.history.length === 0 && (
-                            <div className="flex items-start gap-3">
-                                <Bot className="h-6 w-6 text-primary flex-shrink-0" />
-                                <div className="rounded-lg p-3 max-w-sm bg-secondary">
-                                    <p className="text-sm font-semibold">AI is making the opening statement:</p>
-                                    <p className="text-sm italic mt-1">{selectedCampaign?.callScript}</p>
-                                </div>
-                            </div>
-                         )}
                         {state.history.map((msg, index) => (
-                            <div key={index} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
-                            {msg.role === 'model' && <Bot className="h-6 w-6 text-primary flex-shrink-0" />}
-                            <div className={`rounded-lg p-3 max-w-sm ${msg.role === 'model' ? 'bg-secondary' : 'bg-primary text-primary-foreground'}`}>
-                                <p className="text-sm">{msg.text}</p>
-                            </div>
-                            {msg.role === 'user' && <User className="h-6 w-6 text-muted-foreground flex-shrink-0" />}
+                            <div key={index} className={`flex items-start gap-3 ${msg.role === 'lead' ? 'justify-end' : ''}`}>
+                                {msg.role === 'agent' && <Bot className="h-6 w-6 text-primary flex-shrink-0" />}
+                                <div className={`rounded-lg p-3 max-w-sm ${msg.role === 'agent' ? 'bg-secondary' : 'bg-primary text-primary-foreground'}`}>
+                                    <p className="text-sm font-semibold">{msg.role === 'agent' ? 'Sales Agent' : 'Lead'}</p>
+                                    <p className="text-sm mt-1">{msg.text}</p>
+                                </div>
+                                {msg.role === 'lead' && <User className="h-6 w-6 text-muted-foreground flex-shrink-0" />}
                             </div>
                         ))}
+                        {isCallFinished && (
+                             <div className="flex flex-col items-center justify-center text-center text-muted-foreground pt-6">
+                                <PhoneOff className="h-8 w-8 mb-2" />
+                                <p className="font-semibold">Call Ended</p>
+                                <p className="text-sm">The lead has ended the call.</p>
+                            </div>
+                        )}
                         </div>
                          {state.error && (
                             <Alert variant="destructive" className="mt-4">
@@ -224,19 +224,13 @@ export default function LiveCallPage() {
                         )}
                     </ScrollArea>
                     <Separator className="my-4" />
-                    <form action={formAction} ref={formRef} className="flex gap-2">
+                    <form action={handleFormAction} ref={formRef} className="flex gap-2">
                         <input type="hidden" name="solutionDescription" value={selectedSolution?.description || ''} />
                         <input type="hidden" name="leadProfile" value={leadProfileString} />
                         <input type="hidden" name="callScript" value={selectedCampaign?.callScript || ''} />
                         <input type="hidden" name="conversationHistory" value={JSON.stringify(state.history)} />
                         
-                        <Input
-                            name="userResponse"
-                            placeholder="Type the lead's response here..."
-                            autoComplete="off"
-                            required
-                        />
-                        <SubmitButton />
+                        <SubmitButton disabled={isCallFinished || isPending} />
                     </form>
                 </>
             ) : (
