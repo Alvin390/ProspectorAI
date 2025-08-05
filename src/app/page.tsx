@@ -54,21 +54,21 @@ export default function Dashboard() {
     useEffect(() => {
       if (isLoading) return;
 
-      const activeCampaigns = campaigns.filter((c) => c.status === 'Active').length;
+      const activeCampaignsCount = campaigns.filter((c) => c.status === 'Active').length;
       
-      const meetingsScheduled = allCallLogs.filter(log => log.status === 'Meeting Booked').length;
+      const meetingsScheduledCount = allCallLogs.filter(log => log.status === 'Meeting Booked').length;
       
       const callLeads = allCallLogs.map(l => l.leadIdentifier);
       const emailLeads = allEmailLogs.map(l => l.leadIdentifier);
       const allContactedLeads = new Set([...callLeads, ...emailLeads]);
-      const leadsContacted = allContactedLeads.size;
+      const leadsContactedCount = allContactedLeads.size;
 
-      const successRate = leadsContacted > 0 ? Math.round((meetingsScheduled / leadsContacted) * 100) : 0;
+      const successRate = leadsContactedCount > 0 ? Math.round((meetingsScheduledCount / leadsContactedCount) * 100) : 0;
 
       setStats({
-          activeCampaigns,
-          meetingsScheduled,
-          leadsContacted,
+          activeCampaigns: activeCampaignsCount,
+          meetingsScheduled: meetingsScheduledCount,
+          leadsContacted: leadsContactedCount,
           successRate,
       });
 
@@ -79,8 +79,8 @@ export default function Dashboard() {
           if (currentMonthIndex !== -1) {
               newData[currentMonthIndex] = { 
                   ...newData[currentMonthIndex], 
-                  meetings: meetingsScheduled, 
-                  contacted: leadsContacted 
+                  meetings: meetingsScheduledCount, 
+                  contacted: leadsContactedCount
               };
           }
           return newData;

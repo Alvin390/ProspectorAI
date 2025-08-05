@@ -18,7 +18,10 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useData } from '../data-provider';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Calendar as CalendarIcon } from 'lucide-react';
 
 interface Meeting {
     lead: string;
@@ -32,61 +35,64 @@ interface Meeting {
     }
 }
 
-const upcomingMeetings: Meeting[] = [
+// This will now be used as a template for generating dynamic meeting briefings.
+const briefingTemplates = [
     {
-        lead: "Alex Johnson",
-        company: "Innovate Inc.",
-        time: "Tomorrow, 10:00 AM",
-        date: "2024-10-28",
-        briefing: {
-            title: "Demo for Innovate Inc.",
-            summary: "Alex was very interested in the AI discovery tool after the initial call. He mentioned their current lead profiling process is manual and time-consuming. He's particularly interested in seeing how ProspectorAI can optimize for conversion likelihood.",
-            talkingPoints: [
-                "Focus on the automated persona discovery feature.",
-                "Highlight the multi-channel campaign generation (he mentioned they struggle with call outreach).",
-                "Be prepared to discuss integration with their existing CRM (HubSpot)."
-            ]
-        }
+        title: "Demo for {company}",
+        summary: "{lead} was very interested in the AI discovery tool after the initial call. They mentioned their current lead profiling process is manual and time-consuming. They are particularly interested in seeing how ProspectorAI can optimize for conversion likelihood.",
+        talkingPoints: [
+            "Focus on the automated persona discovery feature.",
+            "Highlight the multi-channel campaign generation.",
+            "Be prepared to discuss integration with their existing CRM."
+        ]
     },
     {
-        lead: "Brenda Smith",
-        company: "Solutions LLC",
-        time: "Wednesday, 2:30 PM",
-        date: "2024-10-30",
-        briefing: {
-            title: "Follow-up with Solutions LLC",
-            summary: "Brenda replied to the third follow-up email. She's skeptical about AI call agents sounding 'robotic'. Her main pain point is the time her team spends on cold calling with low success rates.",
-            talkingPoints: [
-                "Start by addressing the 'robotic voice' concern; perhaps have a sample ready.",
-                "Showcase the 'Not Interested' reasons feature to prove ROI on time saved.",
-                "Emphasize that only confirmed meetings are routed to a human, saving her team's time."
-            ]
-        }
+        title: "Follow-up with {company}",
+        summary: "{lead} replied to the third follow-up email. They're skeptical about AI call agents sounding 'robotic'. Their main pain point is the time their team spends on cold calling with low success rates.",
+        talkingPoints: [
+            "Start by addressing the 'robotic voice' concern; perhaps have a sample ready.",
+            "Showcase the 'Not Interested' reasons feature to prove ROI on time saved.",
+            "Emphasize that only confirmed meetings are routed to a human."
+        ]
     },
-    {
-        lead: "Carlos Gomez",
-        company: "Synergy Corp",
-        time: "Friday, 11:00 AM",
-        date: "2024-11-01",
-        briefing: {
-            title: "Partnership Discussion with Synergy Corp",
-            summary: "Carlos is a VP of Business Development. He's not the direct user but is interested in how ProspectorAI could be a value-add for their portfolio companies. He wants to understand the core value proposition.",
-            talkingPoints: [
-                "Keep the pitch high-level, focused on business outcomes (increased sales pipeline, reduced CAC).",
-                "Explain the problem of sales team inefficiency clearly.",
-                "Frame ProspectorAI as a competitive advantage for their companies."
-            ]
-        }
-    }
-]
+];
 
 export default function CalendarPage() {
+  const { allCallLogs, isLoading } = useData();
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+
+  const upcomingMeetings = useMemo(() => {
+    if (isLoading) return [];
+    
+    return allCallLogs
+        .filter(log => log.status === 'Meeting Booked')
+        .map((log, index) => {
+            const leadName = log.leadIdentifier.split('@')[0].replace('.', ' ').replace(/\b\w/g, l => l.toUpperCase());
+            const companyName = log.campaignName;
+            const template = briefingTemplates[index % briefingTemplates.length]; // Cycle through templates
+            
+            return {
+                lead: leadName,
+                company: companyName,
+                time: `In ${index + 2} days`, // Placeholder time
+                date: new Date(Date.now() + (index + 2) * 86400000).toISOString(),
+                briefing: {
+                    title: template.title.replace('{company}', companyName),
+                    summary: template.summary.replace('{lead}', leadName),
+                    talkingPoints: template.talkingPoints
+                }
+            };
+        });
+  }, [allCallLogs, isLoading]);
 
   const handleViewBriefing = (meeting: Meeting) => {
     setSelectedMeeting(meeting);
     setIsSheetOpen(true);
+  }
+
+  if (isLoading) {
+      return <div>Loading calendar...</div>
   }
 
   return (
@@ -115,7 +121,7 @@ export default function CalendarPage() {
               <CardTitle>Upcoming Meetings</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {upcomingMeetings.map((meeting, index) => (
+              {upcomingMeetings.length > 0 ? upcomingMeetings.map((meeting, index) => (
                 <div key={index}>
                   <div className="flex flex-col space-y-1.5">
                       <div className='flex justify-between items-center'>
@@ -127,7 +133,15 @@ export default function CalendarPage() {
                   </div>
                   {index < upcomingMeetings.length - 1 && <Separator className="my-4" />}
                 </div>
-              ))}
+              )) : (
+                <Alert>
+                    <CalendarIcon className="h-4 w-4" />
+                    <AlertTitle>No Meetings Scheduled</AlertTitle>
+                    <AlertDescription>
+                        When the AI successfully books a meeting, it will appear here automatically.
+                    </AlertDescription>
+                </Alert>
+              )}
             </CardContent>
           </Card>
         </div>
