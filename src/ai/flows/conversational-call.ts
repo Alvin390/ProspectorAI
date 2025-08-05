@@ -55,7 +55,7 @@ const prompt = ai.definePrompt({
     - Their responses should be realistic. They might be skeptical, busy, interested, or dismissive.
 
 **3. Your Task:**
-Based on the provided context and the full conversation history, generate the very next `agentResponse` and `leadResponse`.
+Based on the provided context and the full conversation history, generate the very next \`agentResponse\` and \`leadResponse\`.
 
 ---
 **Solution Description (What the agent is offering):**
