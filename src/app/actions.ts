@@ -180,8 +180,13 @@ export async function handleConversationalCall(
         });
 
         const newHistory = [...validated.conversationHistory, { role: 'user', text: validated.userResponse }];
+
+        const inputForAI: ConversationalCallInput = {
+          ...validated,
+          conversationHistory: newHistory,
+        };
         
-        const result = await conversationalCall(validated);
+        const result = await conversationalCall(inputForAI);
         
         const aiResponse = { role: 'model' as const, text: result.responseText, audio: result.audioResponse };
         
