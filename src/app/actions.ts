@@ -163,7 +163,6 @@ export async function handleConversationalCall(
         solutionDescription: z.string(),
         leadProfile: z.string(),
         callScript: z.string(),
-        // Client sends full history with audio.
         conversationHistory: z.string().transform(str => JSON.parse(str)),
         userResponse: z.string().min(1, 'User response cannot be empty'),
     });
@@ -181,7 +180,8 @@ export async function handleConversationalCall(
         const newUserMessage = { role: 'user' as const, text: validated.userResponse };
 
         // Prepare the history for the AI, stripping out extra fields like audio.
-        const aiHistory = [...clientHistory, newUserMessage].map(({ role, text }) => ({ role, text }));
+        const aiHistory = [...clientHistory.map(({ role, text }: {role: string, text: string}) => ({ role, text })), { role: 'user', text: validated.userResponse }];
+
 
         const inputForAI: ConversationalCallInput = {
           solutionDescription: validated.solutionDescription,
@@ -270,3 +270,5 @@ export async function handleAIEmailFollowUp(
         return { message: 'error', data: null, error: e.message || 'An unknown error occurred.' };
     }
 }
+
+    
