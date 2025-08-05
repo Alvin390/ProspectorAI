@@ -1,6 +1,7 @@
 
 'use client';
 
+import { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -16,9 +17,16 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Mail, CheckCircle, Clock, Send, AlertCircle as BounceIcon, AlertTriangle, Inbox } from 'lucide-react';
+import { Mail, CheckCircle, Clock, Send, AlertCircle as BounceIcon, AlertTriangle, Inbox, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useData } from '../data-provider';
@@ -31,10 +39,13 @@ export interface EmailLog {
   status: 'Sent' | 'Opened' | 'Replied' | 'Bounced' | 'Needs Attention';
   subject: string;
   timestamp: string;
+  body: string;
 }
 
 export default function EmailLogPage() {
   const { allEmailLogs, isLoading } = useData();
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [selectedEmail, setSelectedEmail] = useState<EmailLog | null>(null);
 
   const getStatusIcon = (status: EmailLog['status']) => {
     switch (status) {
@@ -73,11 +84,17 @@ export default function EmailLogPage() {
     return '';
   }
 
+  const handleViewEmail = (email: EmailLog) => {
+    setSelectedEmail(email);
+    setIsSheetOpen(true);
+  };
+
   if (isLoading) {
     return <div>Loading email logs...</div>;
   }
 
   return (
+    <>
     <Card>
       <CardHeader>
         <CardTitle>Email Outreach Log</CardTitle>
@@ -112,7 +129,10 @@ export default function EmailLogPage() {
                             {log.status}
                         </Badge>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right space-x-2">
+                        <Button variant="outline" size="sm" onClick={() => handleViewEmail(log)}>
+                            <Eye className="mr-2 h-4 w-4" /> View Email
+                        </Button>
                         {log.status === 'Needs Attention' && (
                             <Button asChild variant="outline" size="sm">
                                 <Link href="/inbox"><Inbox className="mr-2 h-4 w-4" /> Go to Inbox</Link>
@@ -134,5 +154,25 @@ export default function EmailLogPage() {
        )}
       </CardContent>
     </Card>
+    <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+        <SheetContent className="w-[400px] sm:w-[640px]">
+          {selectedEmail && (
+            <>
+                <SheetHeader>
+                    <SheetTitle>{selectedEmail.subject}</SheetTitle>
+                    <SheetDescription>
+                        Email sent to {selectedEmail.leadIdentifier}
+                    </SheetDescription>
+                </SheetHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="rounded-md border bg-muted p-4">
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{selectedEmail.body}</p>
+                    </div>
+                </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }

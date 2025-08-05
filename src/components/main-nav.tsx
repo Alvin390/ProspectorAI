@@ -33,7 +33,6 @@ const navItems = [
   { href: '/email', label: 'Email Log', icon: Mail },
   { href: '/inbox', label: 'Inbox', icon: Inbox },
   { href: '/calendar', label: 'Calendar', icon: Calendar },
-  { href: '/templates', label: 'Sent Emails', icon: FileText },
 ];
 
 export function MainNav() {

@@ -259,12 +259,31 @@ export async function handleRunOrchestrator(campaign: Campaign, solutions: Solut
         const emailLogs: EmailLog[] = [];
         const solutionName = solution.name || 'Unknown Solution';
 
+        // Use Promise.all to generate email content in parallel for efficiency
+        const emailContentPromises = result.outreachPlan
+            .filter(step => step.action === 'EMAIL')
+            .map(step => {
+                // We create a unique lead profile string for each lead for more personalization
+                 const leadInfo = {
+                    name: step.leadId.split('-')[0] || 'Unknown Lead',
+                    company: step.leadId.split('-')[1] || 'Unknown Company',
+                };
+                const personalizedLeadProfile = `Name: ${leadInfo.name}\nCompany: ${leadInfo.company}\n${leadProfileString}`;
+                return generateCampaignContent({
+                    solutionDescription: solution.description,
+                    leadProfile: personalizedLeadProfile
+                });
+            });
+
+        const emailContents = await Promise.all(emailContentPromises);
+        let emailContentIndex = 0;
+
         result.outreachPlan.forEach((step, index) => {
              const lead = {
                 id: step.leadId,
                 name: step.leadId.split('-')[0] || 'Unknown Lead',
                 company: step.leadId.split('-')[1] || 'Unknown Company',
-                contact: `contact@${(step.leadId.split('-')[1] || 'domain').toLowerCase()}.com`
+                contact: `contact@${(step.leadId.split('-')[1] || 'domain').toLowerCase().replace(/\s+/g, '')}.com`
             }
 
             if (step.action === 'CALL') {
@@ -278,15 +297,19 @@ export async function handleRunOrchestrator(campaign: Campaign, solutions: Solut
                     timestamp: `${index + 1}h ago`
                 });
             } else if (step.action === 'EMAIL') {
-                emailLogs.push({
-                    id: `email-${campaign.id}-${index}`,
-                    campaignId: campaign.id,
-                    campaignName: solutionName,
-                    leadIdentifier: lead.contact,
-                    status: emailStatuses[index % emailStatuses.length],
-                    subject: `Re: ${solutionName}`,
-                    timestamp: `${index + 1}h ago`
-                });
+                 const content = emailContents[emailContentIndex++];
+                 if (content) {
+                    emailLogs.push({
+                        id: `email-${campaign.id}-${index}`,
+                        campaignId: campaign.id,
+                        campaignName: solutionName,
+                        leadIdentifier: lead.contact,
+                        status: emailStatuses[index % emailStatuses.length],
+                        subject: content.emailScript.split('\n')[0].replace('Subject: ', ''), // Extract subject
+                        timestamp: `${index + 1}h ago`,
+                        body: content.emailScript,
+                    });
+                 }
             }
         });
 
