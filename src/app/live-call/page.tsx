@@ -30,11 +30,6 @@ import type { Campaign } from '@/app/campaigns/page';
 import type { Profile } from '@/app/leads/data';
 import type { Solution } from '@/app/solutions/data';
 
-interface Message {
-  role: 'user' | 'model';
-  text: string;
-  audio?: string;
-}
 
 const initialState = {
     message: '',
@@ -70,8 +65,6 @@ export default function LiveCallPage() {
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>('');
   const [selectedLeadId, setSelectedLeadId] = useState<string>('');
   const [orchestrationPlan, setOrchestrationPlan] = useState<any | null>(null);
-
-  const [conversation, setConversation] = useState<Message[]>([]);
   
   const [state, formAction] = useActionState(handleConversationalCall, initialState);
   
@@ -95,16 +88,14 @@ export default function LiveCallPage() {
       const plan = localStorage.getItem(`orchestrationPlan_${selectedCampaignId}`);
       setOrchestrationPlan(plan ? JSON.parse(plan) : null);
       setSelectedLeadId('');
-      setConversation([]);
       // Reset action state when campaign changes
-      initialState.history = []; 
-      initialState.error = null;
+       state.history = []; 
+       state.error = null;
     }
-  }, [selectedCampaignId]);
+  }, [selectedCampaignId, state]);
 
   useEffect(() => {
     if (state.message === 'success' && state.history) {
-        setConversation(state.history);
         formRef.current?.reset();
         
         const lastMessage = state.history[state.history.length -1];
@@ -127,7 +118,7 @@ export default function LiveCallPage() {
             behavior: 'smooth'
         });
     }
-  }, [conversation]);
+  }, [state.history]);
 
 
   const activeCampaigns = campaigns.filter(c => c.status === 'Active');
@@ -216,7 +207,7 @@ export default function LiveCallPage() {
                 <>
                     <ScrollArea className="flex-grow pr-4" ref={scrollAreaRef}>
                         <div className="space-y-6">
-                        {conversation.map((msg, index) => (
+                        {state.history.map((msg, index) => (
                             <div key={index} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
                             {msg.role === 'model' && <Bot className="h-6 w-6 text-primary flex-shrink-0" />}
                             <div className={`rounded-lg p-3 max-w-sm ${msg.role === 'model' ? 'bg-secondary' : 'bg-primary text-primary-foreground'}`}>
@@ -238,7 +229,7 @@ export default function LiveCallPage() {
                         <input type="hidden" name="solutionDescription" value={selectedSolution?.description || ''} />
                         <input type="hidden" name="leadProfile" value={leadProfileString} />
                         <input type="hidden" name="callScript" value={selectedCampaign?.callScript || ''} />
-                        <input type="hidden" name="conversationHistory" value={JSON.stringify(conversation)} />
+                        <input type="hidden" name="conversationHistory" value={JSON.stringify(state.history)} />
                         
                         <Input
                             name="userResponse"

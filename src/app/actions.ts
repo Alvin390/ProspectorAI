@@ -163,12 +163,8 @@ export async function handleConversationalCall(
         solutionDescription: z.string(),
         leadProfile: z.string(),
         callScript: z.string(),
-        // Client sends full history with audio, but we'll only use role and text for the AI.
-        conversationHistory: z.array(z.object({
-            role: z.string(),
-            text: z.string(),
-            audio: z.string().optional(),
-        })),
+        // Client sends full history with audio.
+        conversationHistory: z.string().transform(str => JSON.parse(str)),
         userResponse: z.string().min(1, 'User response cannot be empty'),
     });
 
@@ -177,7 +173,7 @@ export async function handleConversationalCall(
             solutionDescription: formData.get('solutionDescription'),
             leadProfile: formData.get('leadProfile'),
             callScript: formData.get('callScript'),
-            conversationHistory: JSON.parse(formData.get('conversationHistory') as string),
+            conversationHistory: formData.get('conversationHistory'),
             userResponse: formData.get('userResponse'),
         });
 
