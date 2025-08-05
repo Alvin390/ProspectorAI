@@ -307,7 +307,7 @@ export async function handleRunOrchestrator(campaign: Campaign, solutions: Solut
                         status: emailStatuses[index % emailStatuses.length],
                         subject: content.emailScript.split('\n')[0].replace('Subject: ', ''), // Extract subject
                         timestamp: `${index + 1}h ago`,
-                        body: content.emailScript,
+                        body: content.emailScript, // Make sure body is saved
                     });
                  }
             }

@@ -9,13 +9,12 @@
 
 import { ai } from '@/ai/genkit';
 import {
-    FindLeadsInputSchema,
     type FindLeadsInput,
     FindLeadsOutputSchema,
     type FindLeadsOutput
 } from './find-leads.schema';
 
-export async function findLeads(leadProfile: FindLeadsInput): Promise<FindLeadsOutput['potentialLeads']> {
+export async function findLeads(input: FindLeadsInput): Promise<FindLeadsOutput> {
     const prompt = `You are a sophisticated lead discovery engine, an ultra agent blending the roles of a world-class market research assistant and a proactive discovery tool. Your purpose is to synthesize ideal customer profiles from your vast training data, which includes a comprehensive index of the public web.
 
     Your task is to analyze the following ideal customer profile. Based on this profile, simulate a deep search for decision-makers (like VPs, Directors, CTOs) and company contact points. Think as if you are parsing 'About Us' pages, 'Contact' pages, and professional networking profiles.
@@ -30,7 +29,7 @@ export async function findLeads(leadProfile: FindLeadsInput): Promise<FindLeadsO
     
     ---
     **Ideal Customer Profile to Analyze:**
-    ${leadProfile}
+    ${input.leadProfile}
     ---
     
     Generate the list of potential leads now.`;
@@ -42,5 +41,5 @@ export async function findLeads(leadProfile: FindLeadsInput): Promise<FindLeadsO
       },
     });
 
-    return llmResponse.output!.potentialLeads;
+    return llmResponse.output!;
 }

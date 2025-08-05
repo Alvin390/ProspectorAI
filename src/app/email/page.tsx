@@ -164,9 +164,11 @@ export default function EmailLogPage() {
                         Email sent to {selectedEmail.leadIdentifier}
                     </SheetDescription>
                 </SheetHeader>
-                <div className="py-4 flex-grow">
-                   <div className="text-sm text-muted-foreground whitespace-pre-wrap h-full rounded-md border bg-muted p-4 overflow-auto">
-                      {selectedEmail.body}
+                <div className="py-4 flex-grow min-h-0">
+                   <div className="h-full w-full rounded-md border bg-muted p-4 overflow-auto">
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                            {selectedEmail.body}
+                        </p>
                     </div>
                 </div>
             </>

@@ -3,11 +3,13 @@ import { z } from 'genkit';
 /**
  * @fileOverview Schemas and types for the lead finder AI agent.
  *
- * - FindLeadsInputSchema - The input type for the findLeads function.
- * - FindLeadsOutputSchema - The return type for the findLeads function.
+ * - FindLeadsInput - The input type for the findLeads function.
+ * - FindLeadsOutput - The return type for the findLeads function.
  */
 
-export const FindLeadsInputSchema = z.string().describe('The profile of the ideal lead, including attributes and online presence.');
+export const FindLeadsInputSchema = z.object({
+    leadProfile: z.string().describe('The profile of the ideal lead, including attributes and online presence.')
+});
 export type FindLeadsInput = z.infer<typeof FindLeadsInputSchema>;
 
 export const FindLeadsOutputSchema = z.object({

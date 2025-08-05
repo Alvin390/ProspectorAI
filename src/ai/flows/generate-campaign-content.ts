@@ -14,6 +14,7 @@ import {
     GenerateCampaignContentOutputSchema,
     type GenerateCampaignContentOutput
 } from './generate-campaign-content.schema';
+import { googleAI } from '@genkit-ai/googleai';
 
 
 export async function generateCampaignContent(
@@ -26,6 +27,8 @@ const prompt = ai.definePrompt({
   name: 'generateCampaignContentPrompt',
   input: {schema: GenerateCampaignContentInputSchema},
   output: {schema: GenerateCampaignContentOutputSchema},
+  // Use a high-quality model for content generation where speed is not critical.
+  model: googleAI.model('gemini-1.5-pro-latest'),
   prompt: `You are an expert sales strategist and copywriter, embodying the persona of a helpful, intelligent peer. Your primary goal is to secure a meeting by creating hyper-personalized, empathetic, and human-like outreach scripts.
 
 You will be given a description of a software solution and a detailed profile of a target lead. Your task is to create a unique, compelling outreach sequence tailored *specifically* to this individual.
