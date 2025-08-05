@@ -23,6 +23,7 @@ import { Separator } from '@/components/ui/separator';
 import { handleAIEmailFollowUp } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import type { EmailFollowUpOutput } from '@/ai/flows/email-follow-up.schema';
+import { Textarea } from '@/components/ui/textarea';
 
 interface Email {
     from: 'user' | 'lead';
@@ -140,6 +141,19 @@ export default function InboxPage() {
         default: return 'Unknown';
       }
   }
+  
+  const handleBodyChange = (threadId: string, newBody: string) => {
+    setAiSuggestions(prev => {
+        if (!prev[threadId]) return prev;
+        return {
+            ...prev,
+            [threadId]: {
+                ...prev[threadId],
+                responseEmailBody: newBody,
+            },
+        };
+    });
+  };
 
   return (
     <Card>
@@ -186,17 +200,19 @@ export default function InboxPage() {
                                 
                                 {aiSuggestions[item.id] ? (
                                     <div className='space-y-4 pt-2'>
-                                        <h4 className='font-semibold text-sm'>AI Suggestion:</h4>
-                                        <div className='flex items-center gap-2'>
-                                            <span className='text-sm font-medium'>Action:</span>
+                                        <div className="flex items-center justify-between">
+                                            <h4 className='font-semibold text-sm'>AI Suggestion:</h4>
                                             <Badge variant={getBadgeVariant(aiSuggestions[item.id].suggestedAction)}>
                                                 {getBadgeText(aiSuggestions[item.id].suggestedAction)}
                                             </Badge>
                                         </div>
                                         {aiSuggestions[item.id].responseEmailBody && (
-                                            <div className="rounded-md border bg-muted p-4">
-                                                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{aiSuggestions[item.id].responseEmailBody}</p>
-                                            </div>
+                                            <Textarea
+                                                value={aiSuggestions[item.id].responseEmailBody}
+                                                onChange={(e) => handleBodyChange(item.id, e.target.value)}
+                                                className="h-48 text-sm"
+                                                placeholder="Edit the AI's response here..."
+                                            />
                                         )}
                                          <div className="flex justify-end gap-2">
                                             <Button variant="outline" onClick={() => handleAnalyze(item)} disabled={isPending}>
