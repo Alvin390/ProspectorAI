@@ -15,7 +15,7 @@ import {
     OutreachOrchestratorOutputSchema,
     type OutreachOrchestratorOutput
 } from './outreach-orchestrator.schema';
-import { findLeadsFlow } from './find-leads';
+import { findLeads } from './find-leads';
 
 
 export async function runOrchestrator(
@@ -24,15 +24,26 @@ export async function runOrchestrator(
   return outreachOrchestratorFlow(input);
 }
 
+const findLeadsTool = ai.defineTool(
+    {
+        name: 'findLeads',
+        description: 'Finds a list of potential leads based on a profile.',
+        inputSchema: OutreachOrchestratorInputSchema.shape.leadProfile,
+        outputSchema: OutreachOrchestratorOutputSchema.shape.outreachPlan,
+    },
+    findLeads
+);
+
+
 const prompt = ai.definePrompt({
   name: 'outreachOrchestratorPrompt',
   input: { schema: OutreachOrchestratorInputSchema },
   output: { schema: OutreachOrchestratorOutputSchema },
-  tools: [findLeadsFlow],
+  tools: [findLeadsTool],
   prompt: `You are an expert AI Sales Strategist and Campaign Manager. Your primary goal is to intelligently orchestrate an outreach campaign to book meetings.
 
 You are given a software solution and an ideal lead profile. Your task is to:
-1.  First, use the findLeadsFlow tool to generate a list of potential leads that match the provided profile.
+1.  First, use the findLeads tool to generate a list of potential leads that match the provided profile.
 2.  Once you have the list of leads, analyze each one in the context of the solution.
 3.  Decide on the most effective initial outreach step for each lead. You can choose between "EMAIL", "CALL", or "DO_NOTHING".
     *   Choose "EMAIL" for leads where a written, detailed first touch seems most appropriate.

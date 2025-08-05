@@ -4,7 +4,7 @@
 /**
  * @fileOverview A lead finding AI agent that simulates searching the web.
  *
- * - findLeadsFlow - A function that generates a list of plausible leads based on a profile.
+ * - findLeads - A function that generates a list of plausible leads based on a profile.
  */
 
 import { ai } from '@/ai/genkit';
@@ -15,16 +15,7 @@ import {
     type FindLeadsOutput
 } from './find-leads.schema';
 
-// This is the tool that the orchestrator will call.
-// It is defined as a flow.
-export const findLeadsFlow = ai.defineFlow(
-  {
-    name: 'findLeadsFlow',
-    inputSchema: FindLeadsInputSchema,
-    outputSchema: FindLeadsOutputSchema,
-  },
-  async (leadProfile) => {
-
+export async function findLeads(leadProfile: FindLeadsInput): Promise<FindLeadsOutput['potentialLeads']> {
     const prompt = `You are a sophisticated lead discovery engine, an ultra agent blending the roles of a world-class market research assistant and a proactive discovery tool. Your purpose is to synthesize ideal customer profiles from your vast training data, which includes a comprehensive index of the public web.
 
     Your task is to analyze the following ideal customer profile. Based on this profile, simulate a deep search for decision-makers (like VPs, Directors, CTOs) and company contact points. Think as if you are parsing 'About Us' pages, 'Contact' pages, and professional networking profiles.
@@ -51,6 +42,5 @@ export const findLeadsFlow = ai.defineFlow(
       },
     });
 
-    return llmResponse.output!;
-  }
-);
+    return llmResponse.output!.potentialLeads;
+}

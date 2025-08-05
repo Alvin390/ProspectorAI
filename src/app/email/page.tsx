@@ -165,9 +165,9 @@ export default function EmailLogPage() {
                     </SheetDescription>
                 </SheetHeader>
                 <div className="py-4 flex-grow">
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap h-full rounded-md border bg-muted p-4">
+                   <div className="text-sm text-muted-foreground whitespace-pre-wrap h-full rounded-md border bg-muted p-4 overflow-auto">
                       {selectedEmail.body}
-                    </p>
+                    </div>
                 </div>
             </>
           )}
