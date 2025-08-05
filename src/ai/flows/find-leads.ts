@@ -25,20 +25,20 @@ export const findLeadsFlow = ai.defineFlow(
   },
   async (leadProfile) => {
 
-    const prompt = `You are a world-class market research assistant. Your task is to find potential leads based on a given customer profile.
+    const prompt = `You are a sophisticated lead discovery engine. Your purpose is to synthesize ideal customer profiles from your vast training data, which includes a comprehensive index of the public web.
 
-    Analyze the following lead profile, which includes key attributes and online presence details. Based on this profile, generate a list of 5-10 highly plausible potential leads.
+    Your task is to analyze the following ideal customer profile. Based on this profile, simulate a deep search for decision-makers (like VPs, Directors, CTOs) and company contact points. Think as if you are parsing 'About Us' pages, 'Contact' pages, and professional networking profiles.
+    
+    From your analysis, generate a list of 5-10 highly plausible potential leads. These leads should be a perfect fit for the profile.
     
     For each lead, you must provide:
     - A full name (e.g., "Alex Johnson")
     - A company name (e.g., "Innovate Inc.")
     - A unique ID combining the name and company (e.g., "Alex Johnson-Innovate Inc.")
-    - Contact information (a plausible email or phone number).
-    
-    The leads you generate should be a perfect fit for the profile provided. Use your training data which includes a vast index of the public web to generate realistic-sounding individuals and companies.
+    - Plausible contact information (a professional email address or a phone number).
     
     ---
-    **Lead Profile to Analyze:**
+    **Ideal Customer Profile to Analyze:**
     ${leadProfile}
     ---
     
