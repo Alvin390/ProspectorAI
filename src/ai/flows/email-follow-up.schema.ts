@@ -1,3 +1,4 @@
+
 import { z } from 'genkit';
 
 /**
@@ -11,7 +12,7 @@ export const EmailFollowUpInputSchema = z.object({
   solutionDescription: z.string().describe('A detailed description of the software solution or product being offered.'),
   leadProfile: z.string().describe('The generated lead profile.'),
   interactionHistory: z.array(z.object({
-      role: z.string().describe("The role in the interaction (e.g., 'user' for the AI agent, 'lead' for the person)."),
+      role: z.string().describe("The role in the interaction (e.g., 'user' for our AI agent, 'lead' for the person)."),
       text: z.string().describe("The content of the interaction (e.g., the body of the email).")
   })).describe('The entire interaction history, including all calls and emails.'),
 });
