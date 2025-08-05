@@ -11,13 +11,6 @@ export const OutreachOrchestratorInputSchema = z.object({
   campaignId: z.string().describe("The ID of the campaign to be orchestrated."),
   solutionDescription: z.string().describe("A detailed description of the software solution or product being offered."),
   leadProfile: z.string().describe("The generated profile of the ideal lead."),
-  // In a real application, this would be a list of actual leads found via scraping/APIs.
-  potentialLeads: z.array(z.object({
-    id: z.string(),
-    name: z.string(),
-    company: z.string(),
-    contact: z.string().describe("email or phone number")
-  })).describe("A list of potential leads matching the profile."),
 });
 export type OutreachOrchestratorInput = z.infer<typeof OutreachOrchestratorInputSchema>;
 

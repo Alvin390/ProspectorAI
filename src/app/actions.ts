@@ -190,7 +190,7 @@ export async function handleConversationalCall(
           leadProfile: validated.leadProfile,
           callScript: validated.callScript,
           userResponse: validated.userResponse,
-          conversationHistory: aiHistory.length === 1 && aiHistory[0].role === 'user' ? [] : aiHistory,
+          conversationHistory: aiHistory.length > 1 ? aiHistory.slice(0, -1) : [],
         };
         
         const result = await conversationalCall(inputForAI);
@@ -223,14 +223,6 @@ interface OrchestratorState {
     error: string | null;
 }
 
-const mockLeads = [
-    { id: 'alex johnson-Innovate Inc.', name: 'Alex Johnson', company: 'Innovate Inc.', contact: 'contact@innovateinc.com' },
-    { id: 'brenda smith-Solutions LLC', name: 'Brenda Smith', company: 'Solutions LLC', contact: 'pm@solutions.llc' },
-    { id: 'carlos gomez-Synergy Corp', name: 'Carlos Gomez', company: 'Synergy Corp', contact: 'info@synergycorp.io' },
-    { id: 'david chen-DataDriven Co.', name: 'David Chen', company: 'DataDriven Co.', contact: '+1-555-0103' },
-    { id: 'emily white-Growth Partners', name: 'Emily White', company: 'Growth Partners', contact: 'emily@growth.partners' }
-];
-
 const callStatuses: CallLog['status'][] = ['Meeting Booked', 'Not Interested', 'Follow-up Required'];
 const emailStatuses: EmailLog['status'][] = ['Sent', 'Opened', 'Replied', 'Bounced', 'Needs Attention'];
 
@@ -252,7 +244,6 @@ export async function handleRunOrchestrator(campaign: Campaign, solutions: Solut
             campaignId: campaign.id,
             solutionDescription: solution.description,
             leadProfile: leadProfileString,
-            potentialLeads: mockLeads // Using mock leads for demonstration
         });
 
         // Generate mock logs based on the orchestration plan
@@ -261,8 +252,12 @@ export async function handleRunOrchestrator(campaign: Campaign, solutions: Solut
         const solutionName = solution.name || 'Unknown Solution';
 
         result.outreachPlan.forEach((step, index) => {
-            const lead = mockLeads.find(l => l.id === step.leadId);
-            if (!lead) return;
+             const lead = {
+                id: step.leadId,
+                name: step.leadId.split('-')[0] || 'Unknown Lead',
+                company: step.leadId.split('-')[1] || 'Unknown Company',
+                contact: `contact@${(step.leadId.split('-')[1] || 'domain').toLowerCase()}.com`
+            }
 
             if (step.action === 'CALL') {
                 callLogs.push({
