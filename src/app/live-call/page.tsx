@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef, useActionState } from 'react';
+import { useState, useEffect, useRef, useOptimistic } from 'react';
 import { useFormStatus } from 'react-dom';
 import {
   Card,
@@ -37,12 +37,6 @@ interface Message {
   audio?: string;
 }
 
-const initialState = {
-  message: '',
-  data: null,
-  error: null,
-};
-
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
@@ -63,17 +57,23 @@ function SubmitButton() {
 }
 
 export default function LiveCallPage() {
-  const [state, formAction] = useActionState(handleConversationalCall, initialState);
-  
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [solutions, setSolutions] = useState<Solution[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>('');
   const [selectedLeadId, setSelectedLeadId] = useState<string>('');
-  const [orchestrationPlan, setOrchestrationPlan] = useState<OutreachOrchestratorOutput | null>(null);
+  const [orchestrationPlan, setOrchestrationPlan] = useState<any | null>(null);
 
   const [conversation, setConversation] = useState<Message[]>([]);
+  const [optimisticConversation, addOptimisticMessage] = useOptimistic<Message[], string>(
+      conversation,
+      (state, newMessage) => [
+          ...state,
+          { role: 'user', text: newMessage }
+      ]
+  );
+  
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -98,27 +98,6 @@ export default function LiveCallPage() {
     }
   }, [selectedCampaignId]);
 
-  useEffect(() => {
-    if (state.message === 'success' && state.data) {
-        const aiResponse: ConversationalCallOutput = state.data;
-        // Only add the AI response here. The user response is added optimistically.
-        setConversation(prev => [
-            ...prev,
-            { role: 'model', text: aiResponse.responseText, audio: aiResponse.audioResponse }
-        ]);
-
-        if (aiResponse.audioResponse && audioRef.current) {
-            audioRef.current.src = aiResponse.audioResponse;
-            audioRef.current.play();
-        }
-    }
-    // Handle error case if needed
-    if (state.message === 'error') {
-        // Optionally remove the optimistic user message if the call fails
-        // For now, we'll leave it to show the attempt.
-        console.error("Server Action Error:", state.error);
-    }
-  }, [state]);
 
   useEffect(() => {
     // Scroll to the bottom of the conversation
@@ -128,7 +107,7 @@ export default function LiveCallPage() {
             behavior: 'smooth'
         });
     }
-  }, [conversation]);
+  }, [optimisticConversation]);
 
 
   const activeCampaigns = campaigns.filter(c => c.status === 'Active');
@@ -136,22 +115,38 @@ export default function LiveCallPage() {
   const selectedSolution = selectedCampaign ? solutions.find(s => s.id === selectedCampaign.solutionId) : null;
   const selectedProfile = selectedCampaign ? profiles.find(p => p.id === selectedCampaign.leadProfileId) : null;
   
-  const handleFormSubmit = (formData: FormData) => {
+  const formAction = async (formData: FormData) => {
     const userResponse = formData.get('userResponse') as string;
-    if (userResponse) {
-        // Optimistically update the UI with the user's message
-        setConversation(prev => [...prev, { role: 'user', text: userResponse }]);
-        
-        // Pass the *new* conversation history to the action
-        const newConversation = [...conversation, { role: 'user', text: userResponse }];
-        formData.set('conversationHistory', JSON.stringify(newConversation));
-        
-        formAction(formData);
-        formRef.current?.reset();
+    addOptimisticMessage(userResponse);
+    formRef.current?.reset();
+    
+    const result = await handleConversationalCall(null, formData);
+    
+    if (result.message === 'success' && result.data) {
+        const aiResponse: ConversationalCallOutput = result.data;
+        setConversation(prev => [
+            ...prev,
+            { role: 'user', text: userResponse },
+            { role: 'model', text: aiResponse.responseText, audio: aiResponse.audioResponse }
+        ]);
+
+        if (aiResponse.audioResponse && audioRef.current) {
+            audioRef.current.src = aiResponse.audioResponse;
+            audioRef.current.play();
+        }
+    } else if (result.message === 'error') {
+        console.error("Server Action Error:", result.error);
+        // Optionally handle the UI feedback for the error
+        // Revert the optimistic update if needed, though often not necessary for chat
+        setConversation(prev => [
+            ...prev,
+            { role: 'user', text: userResponse },
+            { role: 'model', text: `Sorry, an error occurred: ${result.error}` }
+        ]);
     }
   };
   
-  const leadProfileString = selectedProfile?.profileData ? `Attributes: ${selectedProfile.profileData.attributes}\nOnline Presence: ${selectedProfile.profileData.onlinePresence}` : 'Profile not available.';
+  const leadProfileString = selectedProfile?.profileData ? `Attributes: ${selectedProfile.profileData.attributes}\nOnline Presence: ${selected.profileData.onlinePresence}` : 'Profile not available.';
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
@@ -186,8 +181,8 @@ export default function LiveCallPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {orchestrationPlan?.outreachPlan
-                      .filter(p => p.action === 'CALL')
-                      .map(p => (
+                      .filter((p: any) => p.action === 'CALL')
+                      .map((p: any) => (
                       <SelectItem key={p.leadId} value={p.leadId}>{p.leadId.split('-')[0]}</SelectItem>
                     ))}
                   </SelectContent>
@@ -232,7 +227,7 @@ export default function LiveCallPage() {
                 <>
                     <ScrollArea className="flex-grow pr-4" ref={scrollAreaRef}>
                         <div className="space-y-6">
-                        {conversation.map((msg, index) => (
+                        {optimisticConversation.map((msg, index) => (
                             <div key={index} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
                             {msg.role === 'model' && <Bot className="h-6 w-6 text-primary flex-shrink-0" />}
                             <div className={`rounded-lg p-3 max-w-sm ${msg.role === 'model' ? 'bg-secondary' : 'bg-primary text-primary-foreground'}`}>
@@ -244,16 +239,17 @@ export default function LiveCallPage() {
                         </div>
                     </ScrollArea>
                     <Separator className="my-4" />
-                    <form action={handleFormSubmit} ref={formRef} className="flex gap-2">
+                    <form action={formAction} ref={formRef} className="flex gap-2">
                         <input type="hidden" name="solutionDescription" value={selectedSolution?.description || ''} />
                         <input type="hidden" name="leadProfile" value={leadProfileString} />
                         <input type="hidden" name="callScript" value={selectedCampaign?.callScript || ''} />
-                        {/* The conversationHistory is now set dynamically in handleFormSubmit */}
+                        <input type="hidden" name="conversationHistory" value={JSON.stringify(conversation)} />
                         
                         <Input
                             name="userResponse"
                             placeholder="Type the lead's response here..."
                             autoComplete="off"
+                            required
                         />
                         <SubmitButton />
                     </form>
@@ -272,5 +268,3 @@ export default function LiveCallPage() {
     </div>
   );
 }
-
-    
