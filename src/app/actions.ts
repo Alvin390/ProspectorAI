@@ -163,9 +163,11 @@ export async function handleConversationalCall(
         solutionDescription: z.string(),
         leadProfile: z.string(),
         callScript: z.string(),
+        // Client sends full history with audio, but we'll only use role and text for the AI.
         conversationHistory: z.array(z.object({
             role: z.string(),
             text: z.string(),
+            audio: z.string().optional(),
         })),
         userResponse: z.string().min(1, 'User response cannot be empty'),
     });
@@ -179,11 +181,18 @@ export async function handleConversationalCall(
             userResponse: formData.get('userResponse'),
         });
 
-        const newHistory = [...validated.conversationHistory, { role: 'user', text: validated.userResponse }];
+        const clientHistory = validated.conversationHistory;
+        const newUserMessage = { role: 'user' as const, text: validated.userResponse };
+
+        // Prepare the history for the AI, stripping out extra fields like audio.
+        const aiHistory = [...clientHistory, newUserMessage].map(({ role, text }) => ({ role, text }));
 
         const inputForAI: ConversationalCallInput = {
-          ...validated,
-          conversationHistory: newHistory,
+          solutionDescription: validated.solutionDescription,
+          leadProfile: validated.leadProfile,
+          callScript: validated.callScript,
+          userResponse: validated.userResponse,
+          conversationHistory: aiHistory,
         };
         
         const result = await conversationalCall(inputForAI);
@@ -194,7 +203,8 @@ export async function handleConversationalCall(
             message: 'success', 
             data: result, 
             error: null,
-            history: [...newHistory, aiResponse]
+            // Return the full history (including new user message and AI response) to the client
+            history: [...clientHistory, newUserMessage, aiResponse]
         };
 
     } catch (e: any) {
