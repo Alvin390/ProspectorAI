@@ -66,11 +66,11 @@ export default function LiveCallPage() {
   const [orchestrationPlan, setOrchestrationPlan] = useState<any | null>(null);
 
   const [conversation, setConversation] = useState<Message[]>([]);
-  const [optimisticConversation, addOptimisticMessage] = useOptimistic<Message[], string>(
+  const [optimisticConversation, addOptimisticMessage] = useOptimistic<Message[], Message>(
       conversation,
       (state, newMessage) => [
           ...state,
-          { role: 'user', text: newMessage }
+          newMessage
       ]
   );
   
@@ -117,7 +117,7 @@ export default function LiveCallPage() {
   
   const formAction = async (formData: FormData) => {
     const userResponse = formData.get('userResponse') as string;
-    addOptimisticMessage(userResponse);
+    addOptimisticMessage({ role: 'user', text: userResponse });
     formRef.current?.reset();
     
     const result = await handleConversationalCall(null, formData);
@@ -146,7 +146,7 @@ export default function LiveCallPage() {
     }
   };
   
-  const leadProfileString = selectedProfile?.profileData ? `Attributes: ${selectedProfile.profileData.attributes}\nOnline Presence: ${selected.profileData.onlinePresence}` : 'Profile not available.';
+  const leadProfileString = selectedProfile?.profileData ? `Attributes: ${selectedProfile.profileData.attributes}\nOnline Presence: ${selectedProfile.profileData.onlinePresence}` : 'Profile not available.';
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
