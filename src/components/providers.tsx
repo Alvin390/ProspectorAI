@@ -1,8 +1,16 @@
 
 'use client';
 
-import { DataProvider } from '@/app/data-provider';
+import { DataProvider } from '@/context/DataContext';
+import { AuthProvider } from 'reactfire';
+import { auth } from '@/lib/firebase';
 
 export function Providers({ children }: { children: React.ReactNode }) {
-    return <DataProvider>{children}</DataProvider>;
+  return (
+    <AuthProvider sdk={auth}>
+      <DataProvider>
+        {children}
+      </DataProvider>
+    </AuthProvider>
+  );
 }

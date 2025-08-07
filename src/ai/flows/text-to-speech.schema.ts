@@ -7,7 +7,10 @@ import { z } from 'genkit';
  * - TextToSpeechOutput - The return type for the textToSpeech function.
  */
 
-export const TextToSpeechInputSchema = z.string().describe('The text to convert to speech.');
+export const TextToSpeechInputSchema = z.object({
+  text: z.string().describe('The text to convert to speech.'),
+  voice: z.string().default('en-US-Neural2-J').describe('The voice to use for speech synthesis.')
+});
 export type TextToSpeechInput = z.infer<typeof TextToSpeechInputSchema>;
 
 export const TextToSpeechOutputSchema = z.object({

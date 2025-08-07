@@ -13,6 +13,10 @@ import { Toaster } from '@/components/ui/toaster';
 import { Logo } from '@/components/logo';
 import { MainNav } from '@/components/main-nav';
 import { UserNav } from '@/components/user-nav';
+import { useData } from '@/app/data-provider';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import React from 'react';
 
 export const metadata: Metadata = {
   title: 'ProspectorAI',
@@ -24,6 +28,15 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Use DataProvider context for auth state
+  const { user, signInWithGoogle } = useData();
+  const [open, setOpen] = React.useState(true);
+
+  React.useEffect(() => {
+    if (user) setOpen(false);
+    else setOpen(true);
+  }, [user]);
+
   return (
     <html lang="en" className="dark">
       <head>
@@ -75,6 +88,18 @@ export default function RootLayout({
                 </div>
                 <UserNav />
               </header>
+              {/* Auth Dialog Popup */}
+              <Dialog open={open}>
+                <DialogContent>
+                  <div className="flex flex-col items-center gap-4">
+                    <h2 className="text-xl font-semibold">Sign in to ProspectorAI</h2>
+                    <Button onClick={signInWithGoogle} className="w-full max-w-xs">
+                      Continue with Google
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+              {/* Main App Content */}
               <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
                 {children}
               </main>

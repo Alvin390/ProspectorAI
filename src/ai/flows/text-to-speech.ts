@@ -27,23 +27,40 @@ async function toWav(
   sampleWidth = 2
 ): Promise<string> {
   return new Promise((resolve, reject) => {
-    const writer = new wav.Writer({
-      channels,
-      sampleRate: rate,
-      bitDepth: sampleWidth * 8,
-    });
+    try {
+      const writer = new wav.Writer({
+        channels,
+        sampleRate: rate,
+        bitDepth: sampleWidth * 8,
+      });
 
-    let bufs = [] as any[];
-    writer.on('error', reject);
-    writer.on('data', function (d) {
-      bufs.push(d);
-    });
-    writer.on('end', function () {
-      resolve(Buffer.concat(bufs).toString('base64'));
-    });
+      let bufs: Buffer[] = [];
+      writer.on('error', (err) => {
+        console.error('Error in WAV writer:', err);
+        reject(err);
+      });
+      
+      writer.on('data', (chunk: Buffer) => {
+        bufs.push(chunk);
+      });
+      
+      writer.on('end', () => {
+        try {
+          const wavBuffer = Buffer.concat(bufs);
+          const base64Data = wavBuffer.toString('base64');
+          resolve(base64Data);
+        } catch (err) {
+          console.error('Error processing WAV data:', err);
+          reject(new Error('Failed to process WAV data'));
+        }
+      });
 
-    writer.write(pcmData);
-    writer.end();
+      writer.write(pcmData);
+      writer.end();
+    } catch (err) {
+      console.error('Error in WAV conversion:', err);
+      reject(err);
+    }
   });
 }
 
@@ -60,11 +77,11 @@ const textToSpeechFlow = ai.defineFlow(
         responseModalities: ['AUDIO'],
         speechConfig: {
           voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: 'Algenib' },
+            prebuiltVoiceConfig: { voiceName: query.voice || 'Algenib' },
           },
         },
       },
-      prompt: query,
+      prompt: query.text,
     });
     if (!media) {
       throw new Error('no media returned');

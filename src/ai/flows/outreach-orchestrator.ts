@@ -1,10 +1,9 @@
-
 'use server';
 
 /**
  * @fileOverview The AI Outreach Orchestrator agent.
  * This agent acts as the "brain" for a campaign, deciding the sequence of actions to take.
- * 
+ *
  * - runOrchestrator - A function that generates an outreach plan for a given campaign and list of leads.
  */
 
@@ -17,6 +16,7 @@ import {
 } from './outreach-orchestrator.schema';
 import { z } from 'zod';
 import { findLeadsTool } from './find-leads';
+import { addLeads } from '@/app/data-provider';
 
 export async function runOrchestrator(
   input: OutreachOrchestratorInput
@@ -84,17 +84,26 @@ const outreachOrchestratorFlow = ai.defineFlow(
         outreachPlan: [],
       };
     }
-    
-    // 2. Pass the found leads to the prompt to get the strategic plan
-    const { output } = await prompt({
+    // Persist enriched leads to Firestore
+    await addLeads(leadsOutput.potentialLeads);
+    // 2. Generate general scripts for campaign review (solution + lead profile only)
+    await import('./generate-campaign-content').then(mod =>
+      mod.generateCampaignContent({
+        solutionDescription: input.solutionDescription,
+        leadProfile: input.leadProfile,
+      })
+    );
+    // 3. Pass the found leads to the prompt to get the strategic plan
+    const promptResult = await prompt({
         solutionDescription: input.solutionDescription,
         leads: leadsOutput.potentialLeads,
     });
-    
-    // 3. Add the campaignId to the final output
+    const output = promptResult?.output;
+    // 4. For each lead in the outreach plan, if action is EMAIL, generate and collect hyperpersonalized email (handled outside this flow)
+    // 5. Return only the fields required by the schema
     return {
       campaignId: input.campaignId,
-      ...output!,
+      outreachPlan: Array.isArray(output?.outreachPlan) ? output.outreachPlan : [],
     };
   }
 );

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -25,6 +24,8 @@ import { CampaignCreationForm } from './campaign-creation-form';
 import { handleRunOrchestrator } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useData } from '../data-provider';
+import { db } from '@/lib/firebase';
+import { collection, doc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 
 
 export interface Campaign {
@@ -37,7 +38,7 @@ export interface Campaign {
 }
 
 export default function CampaignsPage() {
-  const { campaigns, setCampaigns, solutions, profiles, addCallLogs, addEmailLogs, isLoading } = useData();
+  const { campaigns, user, solutions, profiles, addCallLogs, addEmailLogs, isLoading } = useData();
   const [activeTab, setActiveTab] = useState('tracker');
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -58,9 +59,9 @@ export default function CampaignsPage() {
                   title: 'Campaign Started!',
                   description: `Campaign "${solution?.name}" is now being managed by the AI. View progress on the Orchestration, Calling and Email pages.`,
               });
-               
+
                 localStorage.setItem(`orchestrationPlan_${campaign.id}`, JSON.stringify(result.data.orchestrationPlan));
-                
+
                 if (result.data.callLogs.length > 0) {
                   addCallLogs(result.data.callLogs);
                 }
@@ -74,52 +75,61 @@ export default function CampaignsPage() {
   }
 
 
-  const handleCampaignSubmit = (
+  const handleCampaignSubmit = async (
     campaignData: Omit<Campaign, 'id' | 'status'>
   ) => {
-    if (editingCampaign) {
-      // Update existing campaign
-      const updatedCampaign = { ...editingCampaign, ...campaignData };
-      setCampaigns(campaigns.map(c => 
-        c.id === editingCampaign.id 
-          ? updatedCampaign
-          : c
-      ));
-      if (updatedCampaign.status === 'Active') {
-        // If the updated campaign is active, we should re-run the orchestrator
-        runOrchestratorForCampaign(updatedCampaign);
-      }
-      setEditingCampaign(null);
-    } else {
-      // Add new campaign
-      const newCampaign = {
+    try {
+      if (editingCampaign) {
+        // Update existing campaign in Firestore
+        const updatedCampaign = { ...editingCampaign, ...campaignData };
+        await updateDoc(doc(db, 'campaigns', editingCampaign.id), updatedCampaign);
+        if (updatedCampaign.status === 'Active') {
+          runOrchestratorForCampaign(updatedCampaign);
+        }
+        setEditingCampaign(null);
+      } else {
+        // Add new campaign to Firestore
+        const newCampaign = {
           ...campaignData,
-          id: `campaign-${Date.now()}`,
           status: 'Active' as const,
-      };
-      setCampaigns((prev) => [newCampaign, ...prev]);
-      runOrchestratorForCampaign(newCampaign);
+          createdBy: user?.uid || '',
+        };
+        const docRef = await addDoc(collection(db, 'campaigns'), newCampaign);
+        const campaignWithId = { ...newCampaign, id: docRef.id };
+        runOrchestratorForCampaign(campaignWithId);
+      }
+      setActiveTab('tracker');
+    } catch (err) {
+      toast({ title: "Save Failed", description: "Could not save campaign.", variant: "destructive" });
     }
-    setActiveTab('tracker');
   };
 
-  const toggleCampaignStatus = (campaign: Campaign) => {
-    const newStatus = campaign.status === 'Active' ? 'Paused' : 'Active';
-    const updatedCampaign = { ...campaign, status: newStatus };
-    
-    setCampaigns(campaigns.map(c => 
-      c.id === campaign.id ? updatedCampaign : c
-    ));
-
-    if (newStatus === 'Active') {
-      const solution = solutions.find(s => s.id === campaign.solutionId);
-      toast({
+  const toggleCampaignStatus = async (campaign: Campaign) => {
+    try {
+      const newStatus: 'Active' | 'Paused' = campaign.status === 'Active' ? 'Paused' : 'Active';
+      const updatedCampaign: Campaign = { ...campaign, status: newStatus };
+      await updateDoc(doc(db, 'campaigns', campaign.id), updatedCampaign);
+      if (newStatus === 'Active') {
+        const solution = solutions.find(s => s.id === campaign.solutionId);
+        toast({
           title: 'Campaign Resumed!',
           description: `Campaign "${solution?.name}" is active again. Rerunning orchestrator to get latest plan.`,
-      });
-      runOrchestratorForCampaign(updatedCampaign);
+        });
+        runOrchestratorForCampaign(updatedCampaign);
+      }
+    } catch (err) {
+      toast({ title: "Status Change Failed", description: "Could not update campaign status.", variant: "destructive" });
     }
-  }
+  };
+
+  const handleDeleteCampaign = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'campaigns', id));
+      toast({ title: "Campaign Deleted", description: "The campaign has been successfully deleted.", variant: "destructive" });
+    } catch (err) {
+      toast({ title: "Delete Failed", description: "Could not delete campaign.", variant: "destructive" });
+    }
+  };
 
   const handleEditClick = (campaign: Campaign) => {
     setEditingCampaign(campaign);
@@ -162,17 +172,17 @@ export default function CampaignsPage() {
           <CardHeader>
             <CardTitle>{editingCampaign ? `Editing: ${getSolutionNameById(editingCampaign.solutionId)}` : 'AI Campaign Creator'}</CardTitle>
             <CardDescription>
-              {editingCampaign 
+              {editingCampaign
                 ? 'Update the details of your campaign below.'
                 : 'Generate personalized, multi-channel outreach campaigns based on your value proposition and a selected lead profile.'
               }
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <CampaignCreationForm 
+            <CampaignCreationForm
               solutions={solutions}
               profiles={profiles}
-              onCampaignSubmit={handleCampaignSubmit} 
+              onCampaignSubmit={handleCampaignSubmit}
               editingCampaign={editingCampaign}
               clearEditing={clearEditing}
             />
@@ -218,7 +228,7 @@ export default function CampaignsPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="space-x-2">
-                      <Switch 
+                      <Switch
                         checked={campaign.status === 'Active'}
                         onCheckedChange={() => toggleCampaignStatus(campaign)}
                         aria-label="Toggle campaign status"

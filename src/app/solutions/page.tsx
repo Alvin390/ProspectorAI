@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -38,15 +37,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { db } from '@/lib/firebase';
+import { collection, doc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useData } from '../data-provider';
 import type { Solution } from './data';
 
 export default function SolutionsPage() {
-  const { solutions, setSolutions, isLoading } = useData();
+  const { solutions, user, isLoading } = useData();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [editingSolution, setEditingSolution] = useState<Solution | null>(null);
   const [currentSolution, setCurrentSolution] = useState<Omit<Solution, 'id'>>({ name: '', description: '' });
-
   const { toast } = useToast();
 
   const handleOpenSheet = (solution: Solution | null) => {
@@ -60,59 +60,71 @@ export default function SolutionsPage() {
     setIsSheetOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    // Prevent deleting the last solution
+  const handleDelete = async (id: string) => {
     if (solutions.length <= 1) {
-        toast({
-            title: "Cannot Delete",
-            description: "You must have at least one solution.",
-            variant: "destructive",
-        });
-        return;
+      toast({
+        title: "Cannot Delete",
+        description: "You must have at least one solution.",
+        variant: "destructive",
+      });
+      return;
     }
-    setSolutions(solutions.filter(s => s.id !== id));
-    toast({
+    try {
+      await deleteDoc(doc(db, 'solutions', id));
+      toast({
         title: "Solution Deleted",
         description: "The solution has been successfully deleted.",
         variant: "destructive"
-    })
-  }
-
-  const handleSave = () => {
-    if (!currentSolution.name || !currentSolution.description) {
-        toast({
-            title: "Missing Fields",
-            description: "Please fill out all fields to save the solution.",
-            variant: "destructive"
-        })
-        return;
-    }
-
-    if (editingSolution) {
-      // Update existing solution
-      setSolutions(solutions.map(s =>
-        s.id === editingSolution.id
-          ? { ...editingSolution, ...currentSolution }
-          : s
-      ));
+      });
+    } catch (err) {
       toast({
+        title: "Delete Failed",
+        description: "Could not delete solution.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleSave = async () => {
+    if (!currentSolution.name || !currentSolution.description) {
+      toast({
+        title: "Missing Fields",
+        description: "Please fill out all fields to save the solution.",
+        variant: "destructive"
+      });
+      return;
+    }
+    try {
+      if (editingSolution) {
+        // Update existing solution in Firestore
+        await updateDoc(doc(db, 'solutions', editingSolution.id), {
+          ...editingSolution,
+          ...currentSolution,
+        });
+        toast({
           title: "Solution Updated",
           description: "Your changes have been saved."
-      })
-    } else {
-      // Add new solution
-      const newSolution: Solution = {
-        id: `sol-${Date.now()}`,
-        ...currentSolution,
-      };
-      setSolutions([newSolution, ...solutions]);
-      toast({
+        });
+      } else {
+        // Add new solution to Firestore
+        await addDoc(collection(db, 'solutions'), {
+          ...currentSolution,
+          createdBy: user?.uid || '',
+        });
+        toast({
           title: "Solution Created",
           description: "The new solution has been saved."
-      })
+        });
+      }
+      setIsSheetOpen(false);
+      setEditingSolution(null);
+    } catch (err) {
+      toast({
+        title: "Save Failed",
+        description: "Could not save solution.",
+        variant: "destructive"
+      });
     }
-    setIsSheetOpen(false);
-    setEditingSolution(null);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -191,8 +203,8 @@ export default function SolutionsPage() {
           <SheetHeader>
             <SheetTitle>{editingSolution ? 'Edit Solution' : 'Add New Solution'}</SheetTitle>
             <SheetDescription>
-              {editingSolution 
-                ? 'Modify the details of your software solution.' 
+              {editingSolution
+                ? 'Modify the details of your software solution.'
                 : 'Describe your new software solution. This will be used by the AI.'
               }
             </SheetDescription>

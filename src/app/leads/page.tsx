@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -32,42 +31,51 @@ import type { GenerateLeadProfileOutput } from '@/ai/flows/generate-lead-profile
 import { useToast } from '@/hooks/use-toast';
 import { type Profile } from './data';
 import { useData } from '../data-provider';
+import { db } from '@/lib/firebase';
+import { collection, doc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 
 
 export default function LeadProfilingPage() {
-  const { profiles, setProfiles, solutions, isLoading } = useData();
+  const { profiles, user, solutions, isLoading } = useData();
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
   const { toast } = useToast();
 
-  const handleProfileSave = (profileData: Partial<Profile>, generatedData: GenerateLeadProfileOutput) => {
-    if (profileData.id && editingProfile) { // This is an update
-        setProfiles(profiles.map(p => p.id === editingProfile.id ? {
-            ...p,
-            name: profileData.name!,
-            description: profileData.description!,
-            profileData: generatedData,
-        } : p));
+  const handleProfileSave = async (profileData: Partial<Profile>, generatedData: GenerateLeadProfileOutput) => {
+    try {
+      if (profileData.id && editingProfile) { // Update
+        await updateDoc(doc(db, 'leads', editingProfile.id), {
+          ...editingProfile,
+          name: profileData.name!,
+          description: profileData.description!,
+          profileData: generatedData,
+        });
         toast({ title: "Profile Updated", description: "The lead profile has been successfully updated." });
-    } else { // This is a new profile
-        const newProfile: Profile = {
-            id: `profile-${Date.now()}`,
-            name: profileData.name!,
-            description: profileData.description!,
-            status: 'Completed',
-            createdAt: new Date().toISOString().split('T')[0],
-            profileData: generatedData
-        };
-        setProfiles(prev => [newProfile, ...prev]);
+      } else { // Create
+        await addDoc(collection(db, 'leads'), {
+          name: profileData.name!,
+          description: profileData.description!,
+          status: 'Completed',
+          createdAt: new Date().toISOString().split('T')[0],
+          profileData: generatedData,
+          createdBy: user?.uid || '',
+        });
         toast({ title: "Profile Saved", description: "The new lead profile has been saved." });
+      }
+      setEditingProfile(null);
+    } catch (err) {
+      toast({ title: "Save Failed", description: "Could not save lead profile.", variant: "destructive" });
     }
-    setEditingProfile(null); // Clear editing state
   };
-  
-  const handleDeleteProfile = (id: string) => {
-    setProfiles(profiles.filter(p => p.id !== id));
-    toast({ title: "Profile Deleted", variant: "destructive" });
+
+  const handleDeleteProfile = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'leads', id));
+      toast({ title: "Profile Deleted", variant: "destructive" });
+    } catch (err) {
+      toast({ title: "Delete Failed", description: "Could not delete lead profile.", variant: "destructive" });
+    }
   };
-  
+
   const handleEditProfile = (profile: Profile) => {
       setEditingProfile(profile);
       // Scroll to top to make the form visible
@@ -88,15 +96,15 @@ export default function LeadProfilingPage() {
         <CardHeader>
           <CardTitle>{editingProfile ? `Editing: ${editingProfile.name}` : 'AI-Powered Lead Profiling'}</CardTitle>
           <CardDescription>
-             {editingProfile 
-                ? 'Modify the details for this profile.' 
+             {editingProfile
+                ? 'Modify the details for this profile.'
                 : 'Select a solution or describe an ideal customer, and the AI will generate a detailed market profile.'
              }
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <LeadProfilingForm 
-            solutions={solutions} 
+          <LeadProfilingForm
+            solutions={solutions}
             onProfileSave={handleProfileSave}
             editingProfile={editingProfile}
             onCancel={handleCancelEdit}

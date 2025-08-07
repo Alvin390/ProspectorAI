@@ -1,4 +1,3 @@
-
 'use server';
 
 import {
@@ -9,7 +8,7 @@ import {
   generateCampaignContent,
 } from '@/ai/flows/generate-campaign-content';
 import type { GenerateCampaignContentOutput } from '@/ai/flows/generate-campaign-content.schema';
-import { 
+import {
   textToSpeech,
 } from '@/ai/flows/text-to-speech';
 import type { TextToSpeechOutput } from '@/ai/flows/text-to-speech.schema';
@@ -31,6 +30,7 @@ import type { Solution } from './solutions/data';
 import type { Profile } from './leads/data';
 import type { CallLog } from './calling/page';
 import type { EmailLog } from './email/page';
+import { serverTimestamp, Timestamp } from 'firebase/firestore';
 
 interface LeadProfileFormState {
   message: string;
@@ -89,7 +89,7 @@ export async function handleGenerateCampaignContent(
 
     const solutions: Solution[] = JSON.parse(validated.solutions);
     const profiles: Profile[] = JSON.parse(validated.profiles);
-    
+
     const solution = solutions.find(s => s.id === validated.solutionId);
     if (!solution) {
       return { message: 'error', data: null, error: 'Selected solution not found.' };
@@ -143,10 +143,18 @@ export async function handleTextToSpeech(
     }
 
     try {
-        const result = await textToSpeech(validated.data);
+        const result = await textToSpeech({
+            text: validated.data,
+            voice: 'en-US-Neural2-J' // Default voice
+        });
         return { message: 'success', data: result, error: null };
     } catch (e: any) {
-        return { message: 'error', data: null, error: e.message || 'An unknown error occurred.' };
+        console.error('Error in text-to-speech conversion:', e);
+        return {
+            message: 'error',
+            data: null,
+            error: e.message || 'An unknown error occurred during text-to-speech conversion.'
+        };
     }
 }
 
@@ -158,82 +166,132 @@ interface ConversationalCallState {
 }
 
 export async function handleConversationalCall(
-    prevState: ConversationalCallState,
-    formData: FormData
+  prevState: ConversationalCallState,
+
+  formData: FormData
 ): Promise<ConversationalCallState> {
-    const schema = z.object({
-        solutionDescription: z.string(),
-        leadProfile: z.string(),
-        callScript: z.string(),
-        conversationHistory: z.string().transform(str => JSON.parse(str)),
+  try {
+    console.log('Starting handleConversationalCall with form data:', Object.fromEntries(formData.entries()));
+
+    // Validate required fields
+    const requiredFields = ['solutionDescription', 'leadProfile', 'callScript', 'conversationHistory'];
+    const missingFields = requiredFields.filter(field => !formData.has(field));
+
+    if (missingFields.length > 0) {
+      const errorMsg = `Missing required fields: ${missingFields.join(', ')}`;
+      console.error(errorMsg);
+      return {
+        ...prevState,
+        message: 'error',
+        error: errorMsg,
+      };
+    }
+
+    // Parse and validate conversation history
+    let conversationHistory: Array<{ role: 'agent' | 'lead'; text: string; audio: string }>;
+    try {
+      const parsed = JSON.parse(formData.get('conversationHistory') as string || '[]');
+      if (!Array.isArray(parsed)) {
+        throw new Error('conversationHistory must be an array');
+      }
+
+      // Validate and normalize the conversation history
+      conversationHistory = parsed.map(item => {
+        const role = item.role === 'agent' || item.role === 'lead' ? item.role : 'agent';
+        return {
+          role,
+          text: String(item.text || ''),
+          audio: item.audio ? String(item.audio) : '',
+        };
+      });
+    } catch (parseError) {
+      const errorMsg = 'Invalid conversation history format';
+      console.error(errorMsg, parseError);
+      return {
+        ...prevState,
+        message: 'error',
+        error: errorMsg,
+      };
+    }
+
+    const solutionDescription = formData.get('solutionDescription') as string;
+    const leadProfile = formData.get('leadProfile') as string;
+    const callScript = formData.get('callScript') as string;
+
+    // If this is the first turn, start with the call script
+    if (conversationHistory.length === 0 && callScript) {
+      console.log('Starting new conversation with call script');
+      conversationHistory.push({
+        role: 'agent',
+        text: callScript,
+        audio: '', // Will be filled in after audio generation
+      });
+    }
+
+    console.log('Generating next conversation turn with history length:', conversationHistory.length);
+
+    // Generate the next turn in the conversation
+    const response = await conversationalCall({
+      solutionDescription,
+      leadProfile,
+      callScript,
+      conversationHistory: conversationHistory.map(({ role, text }) => ({
+        role,
+        text,
+      })),
     });
 
-    try {
-        const validated = schema.parse({
-            solutionDescription: formData.get('solutionDescription'),
-            leadProfile: formData.get('leadProfile'),
-            callScript: formData.get('callScript'),
-            conversationHistory: formData.get('conversationHistory'),
-        });
-        
-        let clientHistory = validated.conversationHistory;
-
-        // The history sent to the AI only needs the role and text
-        let aiHistory = clientHistory.map(({ role, text }: {role: string, text: string}) => ({ role, text }));
-        
-        // If the history is empty, this is the first turn.
-        // Prepend the call script as the first "agent" utterance.
-        if (aiHistory.length === 0 && validated.callScript) {
-            aiHistory.unshift({ role: 'agent', text: validated.callScript});
-        }
-        
-        const inputForAI: ConversationalCallInput = {
-          solutionDescription: validated.solutionDescription,
-          leadProfile: validated.leadProfile,
-          callScript: validated.callScript,
-          conversationHistory: aiHistory,
-        };
-        
-        const result = await conversationalCall(inputForAI);
-        
-        // Create the new turn objects with all data for the client
-        const agentTurn = { 
-            role: 'agent' as const, 
-            text: result.agentResponseText, 
-            audio: result.agentResponseAudio 
-        };
-        const leadTurn = {
-            role: 'lead' as const,
-            text: result.leadResponseText,
-            audio: result.leadResponseAudio
-        }
-        
-        // If this was the first turn, add the agent's opening line to the start of the history
-        if(clientHistory.length === 0) {
-            const openingAudio = await textToSpeech(validated.callScript);
-            clientHistory.push({
-                role: 'agent',
-                text: validated.callScript,
-                audio: openingAudio.media
-            })
-        }
-
-        // Add the new turns to the history
-        const updatedHistory = [...clientHistory, agentTurn, leadTurn];
-
-        return { 
-            message: 'success', 
-            data: result, 
-            error: null,
-            history: updatedHistory
-        };
-
-    } catch (e: any) {
-         if (e instanceof z.ZodError) {
-             return { ...prevState, message: 'error', data: null, error: e.errors.map(err => err.message).join(', ') };
-         }
-        return { ...prevState, message: 'error', data: null, error: e.message || 'An unknown error occurred.' };
+    // Validate the response
+    if (!response.agentResponseText || !response.leadResponseText) {
+      throw new Error('Invalid response from conversational AI');
     }
+
+    // Add the agent's response to history
+    const newHistory = [
+      ...conversationHistory,
+      {
+        role: 'agent' as const,
+        text: response.agentResponseText,
+        audio: response.agentResponseAudio,
+      },
+      {
+        role: 'lead' as const,
+        text: response.leadResponseText,
+        audio: response.leadResponseAudio,
+      },
+    ];
+
+    console.log('Successfully generated conversation turn');
+
+    return {
+      ...prevState,
+      message: '',
+      data: response,
+      history: newHistory,
+      error: null,
+    };
+  } catch (error) {
+    console.error('Error in handleConversationalCall:', error);
+
+    // Provide more detailed error information
+    let errorMessage = 'An unexpected error occurred';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+
+      // Handle specific error cases
+      if (error.message.includes('unexpected response')) {
+        errorMessage = 'The AI returned an unexpected response format. Please try again.';
+      } else if (error.message.includes('rate limit')) {
+        errorMessage = 'Rate limit exceeded. Please wait a moment and try again.';
+      }
+    }
+
+    return {
+      ...prevState,
+      message: 'error',
+      error: errorMessage,
+    };
+  }
 }
 
 interface OrchestratorState {
@@ -247,7 +305,7 @@ interface OrchestratorState {
 }
 
 const callStatuses: CallLog['status'][] = ['Meeting Booked', 'Not Interested', 'Follow-up Required'];
-const emailStatuses: EmailLog['status'][] = ['Sent', 'Opened', 'Replied', 'Bounced', 'Needs Attention'];
+const emailStatuses: EmailLog['status'][] = ['sent', 'opened', 'replied', 'bounced'];
 
 export async function handleRunOrchestrator(campaign: Campaign, solutions: Solution[], profiles: Profile[]): Promise<OrchestratorState> {
     const solution = solutions.find(s => s.id === campaign.solutionId);
@@ -304,38 +362,40 @@ export async function handleRunOrchestrator(campaign: Campaign, solutions: Solut
             if (step.action === 'CALL') {
                 callLogs.push({
                     id: `call-${campaign.id}-${index}`,
+                    leadId: lead.id,
                     campaignId: campaign.id,
-                    campaignName: solutionName,
-                    leadIdentifier: lead.contact,
-                    status: callStatuses[index % callStatuses.length], // Cycle through statuses
+                    status: 'Meeting Booked',
                     summary: `AI summary for call to ${lead.name}. ${step.reasoning}`,
-                    timestamp: `${index + 1}h ago`
+                    scheduledTime: Timestamp.now(),
+                    createdAt: Timestamp.now(),
+                    createdBy: campaign.id
                 });
             } else if (step.action === 'EMAIL') {
                  const content = emailContents[emailContentIndex++];
                  if (content) {
                     emailLogs.push({
                         id: `email-${campaign.id}-${index}`,
+                        leadId: lead.id,
                         campaignId: campaign.id,
-                        campaignName: solutionName,
-                        leadIdentifier: lead.contact,
+                        subject: content.emailScript.split('\n')[0].replace('Subject: ', ''),
+                        content: content.emailScript,
                         status: emailStatuses[index % emailStatuses.length],
-                        subject: content.emailScript.split('\n')[0].replace('Subject: ', ''), // Extract subject
-                        timestamp: `${index + 1}h ago`,
-                        body: content.emailScript, // Make sure body is saved
+                        createdAt: Timestamp.now(),
+                        createdBy: campaign.id,
+                        sentAt: Timestamp.now()
                     });
                  }
             }
         });
 
-        return { 
-            message: 'success', 
+        return {
+            message: 'success',
             data: {
                 orchestrationPlan: result,
                 callLogs,
                 emailLogs
-            }, 
-            error: null 
+            },
+            error: null
         };
 
     } catch (e: any) {

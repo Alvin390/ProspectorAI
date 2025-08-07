@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -33,13 +32,23 @@ import { useData } from '../data-provider';
 
 export interface EmailLog {
   id: string;
+  leadId: string;
   campaignId: string;
-  campaignName: string;
-  leadIdentifier: string;
-  status: 'Sent' | 'Opened' | 'Replied' | 'Bounced' | 'Needs Attention';
   subject: string;
-  timestamp: string;
-  body: string;
+  content: string;
+  status: 'draft' | 'sent' | 'delivered' | 'opened' | 'replied' | 'bounced';
+  sentAt?: string;
+  openedAt?: string;
+  replyReceivedAt?: string;
+  threadId?: string;
+  enrichment?: {
+    jobTitle?: string;
+    interests?: string[];
+    recentNews?: string;
+    linkedinUrl?: string;
+  };
+  createdAt: string;
+  createdBy: string;
 }
 
 export default function EmailLogPage() {
@@ -61,7 +70,7 @@ export default function EmailLogPage() {
         return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
     }
   }
-  
+
   const getStatusBadgeVariant = (status: EmailLog['status']) => {
     switch (status) {
       case 'Replied':
@@ -98,83 +107,75 @@ export default function EmailLogPage() {
     <Card>
       <CardHeader>
         <CardTitle>Email Outreach Log</CardTitle>
-        <CardDescription>
-         A real-time log of all outreach emails sent by the AI. This log is updated as the AI works through its campaign tasks. Items needing your attention are highlighted.
-        </CardDescription>
       </CardHeader>
       <CardContent>
-       {allEmailLogs.length > 0 ? (
-           <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Campaign</TableHead>
-                  <TableHead>Lead</TableHead>
-                   <TableHead>Subject</TableHead>
-                  <TableHead>Status</TableHead>
-                   <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {allEmailLogs.sort((a,b) => parseInt(b.timestamp) - parseInt(a.timestamp)).map((log) => (
-                  <TableRow key={log.id} className={log.status === 'Needs Attention' ? 'bg-yellow-500/10' : ''}>
-                    <TableCell className="font-medium">{log.campaignName}</TableCell>
-                    <TableCell>{log.leadIdentifier}</TableCell>
-                    <TableCell className="text-muted-foreground">{log.subject}</TableCell>
-                    <TableCell>
-                        <Badge 
-                            variant={getStatusBadgeVariant(log.status)} 
-                            className={`gap-1 pl-2 pr-3 ${getStatusBadgeClassName(log.status)}`}
-                        >
-                            {getStatusIcon(log.status)}
-                            {log.status}
-                        </Badge>
-                    </TableCell>
-                    <TableCell className="text-right space-x-2">
-                        <Button variant="outline" size="sm" onClick={() => handleViewEmail(log)}>
-                            <Eye className="mr-2 h-4 w-4" /> View Email
-                        </Button>
-                        {log.status === 'Needs Attention' && (
-                            <Button asChild variant="outline" size="sm">
-                                <Link href="/inbox"><Inbox className="mr-2 h-4 w-4" /> Go to Inbox</Link>
-                            </Button>
-                        )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-       ) : (
-            <Alert>
-                <Mail className="h-4 w-4" />
-                <AlertTitle>No Email Activity Yet</AlertTitle>
-                <AlertDescription>
-                  Once an active campaign begins sending emails, the activity will appear here in real-time. Start a new campaign on the Campaigns page to begin.
-                </AlertDescription>
-            </Alert>
-       )}
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Status</TableHead>
+              <TableHead>Subject</TableHead>
+              <TableHead>Lead</TableHead>
+              <TableHead>Job Title</TableHead>
+              <TableHead>Interests</TableHead>
+              <TableHead>Recent News</TableHead>
+              <TableHead>LinkedIn</TableHead>
+              <TableHead>Sent At</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {allEmailLogs.map((email) => (
+              <TableRow key={email.id}>
+                <TableCell>
+                  <Badge variant={getStatusBadgeVariant(email.status)} className={getStatusBadgeClassName(email.status)}>
+                    {getStatusIcon(email.status)} {email.status}
+                  </Badge>
+                </TableCell>
+                <TableCell>{email.subject}</TableCell>
+                <TableCell>{email.leadId}</TableCell>
+                <TableCell>{email.enrichment?.jobTitle || '-'}</TableCell>
+                <TableCell>{email.enrichment?.interests?.join(', ') || '-'}</TableCell>
+                <TableCell>{email.enrichment?.recentNews || '-'}</TableCell>
+                <TableCell>{email.enrichment?.linkedinUrl ? <Link href={email.enrichment.linkedinUrl} target="_blank">LinkedIn</Link> : '-'}</TableCell>
+                <TableCell>{email.sentAt || '-'}</TableCell>
+                <TableCell>
+                  <Button variant="outline" size="sm" onClick={() => handleViewEmail(email)}>
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
     <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent className="w-[400px] sm:w-[640px] flex flex-col">
-          {selectedEmail && (
-            <>
-                <SheetHeader>
-                    <SheetTitle>{selectedEmail.subject}</SheetTitle>
-                    <SheetDescription>
-                        Email sent to {selectedEmail.leadIdentifier}
-                    </SheetDescription>
-                </SheetHeader>
-                <div className="py-4 flex-grow min-h-0">
-                   <div className="h-full w-full rounded-md border bg-muted p-4 overflow-auto">
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                            {selectedEmail.body}
-                        </p>
-                    </div>
-                </div>
-            </>
-          )}
-        </SheetContent>
-      </Sheet>
+      <SheetContent>
+        <SheetHeader>
+          <SheetTitle>Email Details</SheetTitle>
+          <SheetDescription>
+            {selectedEmail && (
+              <>
+                <div><strong>Subject:</strong> {selectedEmail.subject}</div>
+                <div><strong>Lead:</strong> {selectedEmail.leadId}</div>
+                <div><strong>Status:</strong> {selectedEmail.status}</div>
+                <div><strong>Job Title:</strong> {selectedEmail.enrichment?.jobTitle || '-'}</div>
+                <div><strong>Interests:</strong> {selectedEmail.enrichment?.interests?.join(', ') || '-'}</div>
+                <div><strong>Recent News:</strong> {selectedEmail.enrichment?.recentNews || '-'}</div>
+                <div><strong>LinkedIn:</strong> {selectedEmail.enrichment?.linkedinUrl ? <Link href={selectedEmail.enrichment.linkedinUrl} target="_blank">LinkedIn</Link> : '-'}</div>
+                <div><strong>Thread ID:</strong> {selectedEmail.threadId || '-'}</div>
+                <div><strong>Sent At:</strong> {selectedEmail.sentAt || '-'}</div>
+                <div><strong>Body:</strong></div>
+                <Alert>
+                  <AlertTitle>Email Content</AlertTitle>
+                  <AlertDescription>{selectedEmail.content}</AlertDescription>
+                </Alert>
+              </>
+            )}
+          </SheetDescription>
+        </SheetHeader>
+      </SheetContent>
+    </Sheet>
     </>
   );
 }

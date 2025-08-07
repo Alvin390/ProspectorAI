@@ -24,5 +24,7 @@ export const ConversationalCallOutputSchema = z.object({
   leadResponseText: z.string().describe("The text of the simulated lead's response."),
   leadResponseAudio: z.string().describe("The generated audio for the lead's response as a data URI in WAV format. Expected format: 'data:audio/wav;base64,<encoded_data>'."),
   isHangUp: z.boolean().describe("A boolean indicating if the lead has hung up the call, ending the conversation."),
+  error: z.string().optional().describe("An optional error message if an error occurred during the conversation."),
+  warning: z.string().optional().describe("An optional warning message if a warning occurred during the conversation."),
 });
 export type ConversationalCallOutput = z.infer<typeof ConversationalCallOutputSchema>;

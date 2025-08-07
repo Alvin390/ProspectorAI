@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -8,12 +7,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import {
-    type FindLeadsInput,
-    FindLeadsInputSchema,
-    FindLeadsOutputSchema,
-    type FindLeadsOutput
-} from './find-leads.schema';
+import { FindLeadsInput, FindLeadsInputSchema, FindLeadsOutputSchema } from './find-leads.schema';
 
 export const findLeadsTool = ai.defineTool(
     {
@@ -52,3 +46,18 @@ export const findLeadsTool = ai.defineTool(
         return llmResponse.output!;
     }
 );
+
+export async function findLeads(input: FindLeadsInput) {
+  // Call the backend API route for real lead sourcing
+  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/find-leads`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ leadProfile: input.leadProfile }),
+  });
+  const data = await res.json();
+  if (data.potentialLeads) {
+    return data;
+  } else {
+    throw new Error(data.error || 'Failed to fetch leads');
+  }
+}
