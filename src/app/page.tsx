@@ -16,6 +16,7 @@ import {
   ChartLegend,
   ChartLegendContent,
 } from '@/components/ui/chart';
+import { Skeleton } from '@/components/ui/skeleton';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { TrendingUp, Users, Target, CheckCircle } from 'lucide-react';
 import type { ChartConfig } from '@/components/ui/chart';
@@ -42,6 +43,25 @@ const initialChartData = [
   { month: 'May', meetings: 0, contacted: 0 },
   { month: 'June', meetings: 0, contacted: 0 },
 ];
+
+function StatsCard({ title, value, icon: Icon, description, isLoading }: { title: string, value: string | number, icon: React.ElementType, description: string, isLoading: boolean }) {
+    return (
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{title}</CardTitle>
+                <Icon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+                {isLoading ? (
+                    <Skeleton className="h-8 w-1/2" />
+                ) : (
+                    <div className="text-2xl font-bold">{value}</div>
+                )}
+                <p className="text-xs text-muted-foreground">{description}</p>
+            </CardContent>
+        </Card>
+    );
+}
 
 export default function Dashboard() {
     const { campaigns, allCallLogs, allEmailLogs, isLoading } = useData();
@@ -99,65 +119,38 @@ export default function Dashboard() {
         
     }, [campaigns, allCallLogs, allEmailLogs, isLoading]);
 
-    if (isLoading) {
-      return <div>Loading dashboard...</div>
-    }
 
   return (
     <div className="flex flex-col gap-6">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Active Campaigns
-            </CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.activeCampaigns}</div>
-            <p className="text-xs text-muted-foreground">
-              Currently running outreach
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Meetings Scheduled
-            </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.meetingsScheduled}</div>
-            <p className="text-xs text-muted-foreground">
-              From active campaigns
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Leads Contacted</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.leadsContacted}</div>
-            <p className="text-xs text-muted-foreground">
-              Across all campaigns
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.successRate}%</div>
-            <p className="text-xs text-muted-foreground">
-              Meeting booked / contacted
-            </p>
-          </CardContent>
-        </Card>
+        <StatsCard 
+            title="Active Campaigns"
+            value={stats.activeCampaigns}
+            icon={TrendingUp}
+            description="Currently running outreach"
+            isLoading={isLoading}
+        />
+        <StatsCard 
+            title="Meetings Scheduled"
+            value={stats.meetingsScheduled}
+            icon={Users}
+            description="From active campaigns"
+            isLoading={isLoading}
+        />
+        <StatsCard 
+            title="Leads Contacted"
+            value={stats.leadsContacted}
+            icon={Target}
+            description="Across all campaigns"
+            isLoading={isLoading}
+        />
+        <StatsCard 
+            title="Success Rate"
+            value={`${stats.successRate}%`}
+            icon={CheckCircle}
+            description="Meeting booked / contacted"
+            isLoading={isLoading}
+        />
       </div>
       <Card>
         <CardHeader>
@@ -167,6 +160,11 @@ export default function Dashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+        {isLoading ? (
+            <div className="h-[300px] w-full flex items-center justify-center">
+                <Skeleton className="h-full w-full" />
+            </div>
+        ) : (
           <ChartContainer config={chartConfig} className="h-[300px] w-full">
             <BarChart accessibilityLayer data={chartData}>
               <CartesianGrid vertical={false} />
@@ -191,6 +189,7 @@ export default function Dashboard() {
               />
             </BarChart>
           </ChartContainer>
+        )}
         </CardContent>
       </Card>
     </div>

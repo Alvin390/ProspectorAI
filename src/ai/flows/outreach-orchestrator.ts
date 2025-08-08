@@ -23,7 +23,15 @@ import { generateCampaignContent } from './generate-campaign-content';
 export async function runOrchestrator(
   input: OutreachOrchestratorInput
 ): Promise<OutreachOrchestratorOutput> {
-  return outreachOrchestratorFlow(input);
+  console.log(`Starting orchestrator for campaign ID: ${input.campaignId}`);
+  try {
+    const result = await outreachOrchestratorFlow(input);
+    console.log(`Orchestrator finished for campaign ID: ${input.campaignId}. Plan generated with ${result.outreachPlan.length} steps.`);
+    return result;
+  } catch (error) {
+    console.error(`Critical error in runOrchestrator for campaign ID ${input.campaignId}:`, error);
+    throw new Error('Orchestrator failed to execute.');
+  }
 }
 
 const OrchestratorPromptInputSchema = z.object({
@@ -76,34 +84,47 @@ const outreachOrchestratorFlow = ai.defineFlow(
     outputSchema: OutreachOrchestratorOutputSchema,
   },
   async (input) => {
-    // 1. Find the leads first using the tool
-    const leadsOutput = await findLeadsTool({ leadProfile: input.leadProfile });
+    console.log('Executing outreachOrchestratorFlow...');
+    try {
+        // 1. Find the leads first using the tool
+        console.log('Step 1: Finding leads...');
+        const leadsOutput = await findLeadsTool({ leadProfile: input.leadProfile });
 
-    if (!leadsOutput || leadsOutput.potentialLeads.length === 0) {
-      // If no leads are found, return an empty plan
-      return {
-        campaignId: input.campaignId,
-        outreachPlan: [],
-      };
+        if (!leadsOutput || leadsOutput.potentialLeads.length === 0) {
+          console.warn('No potential leads found. Ending orchestrator flow early.');
+          return {
+            campaignId: input.campaignId,
+            outreachPlan: [],
+          };
+        }
+        console.log(`Step 1 Complete: Found ${leadsOutput.potentialLeads.length} leads.`);
+        
+        // Persist enriched leads to Firestore
+        console.log('Step 2: Persisting leads to database...');
+        await addLeads(leadsOutput.potentialLeads);
+        console.log('Step 2 Complete: Leads persisted.');
+
+        // 3. Pass the found leads to the prompt to get the strategic plan
+        console.log('Step 3: Generating strategic outreach plan...');
+        const promptResult = await prompt({
+            solutionDescription: input.solutionDescription,
+            leads: leadsOutput.potentialLeads,
+        });
+        
+        const output = promptResult?.output;
+        if (!output) {
+            throw new Error("Orchestrator prompt returned empty output.");
+        }
+        console.log('Step 3 Complete: Strategic plan generated.');
+
+        // 4. Return only the fields required by the schema
+        return {
+          campaignId: input.campaignId,
+          outreachPlan: Array.isArray(output?.outreachPlan) ? output.outreachPlan : [],
+        };
+    } catch (error) {
+        console.error('Error within outreachOrchestratorFlow:', error);
+        throw error;
     }
-    // Persist enriched leads to Firestore
-    await addLeads(leadsOutput.potentialLeads);
-    // 2. Generate general scripts for campaign review (solution + lead profile only)
-    await generateCampaignContent({
-        solutionDescription: input.solutionDescription,
-        leadProfile: input.leadProfile,
-    });
-    // 3. Pass the found leads to the prompt to get the strategic plan
-    const promptResult = await prompt({
-        solutionDescription: input.solutionDescription,
-        leads: leadsOutput.potentialLeads,
-    });
-    const output = promptResult?.output;
-    // 4. For each lead in the outreach plan, if action is EMAIL, generate and collect hyperpersonalized email (handled outside this flow)
-    // 5. Return only the fields required by the schema
-    return {
-      campaignId: input.campaignId,
-      outreachPlan: Array.isArray(output?.outreachPlan) ? output.outreachPlan : [],
-    };
   }
 );

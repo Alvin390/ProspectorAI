@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -17,6 +18,7 @@ export const findLeadsTool = ai.defineTool(
         outputSchema: FindLeadsOutputSchema,
     },
     async (input) => {
+        console.log('Executing findLeadsTool with profile:', input.leadProfile);
         const prompt = `You are a sophisticated lead discovery engine. Your purpose is to synthesize ideal customer profiles from your vast training data, which includes a comprehensive index of the public web.
 
         Your task is to analyze the following ideal customer profile. Based on this profile, simulate a deep search for decision-makers (like VPs, Directors, CTOs) and company contact points. Think as if you are parsing 'About Us' pages, 'Contact' pages, and professional networking profiles.
@@ -36,28 +38,53 @@ export const findLeadsTool = ai.defineTool(
         
         Generate the list of potential leads now.`;
 
-        const llmResponse = await ai.generate({
-            prompt: prompt,
-            output: {
-                schema: FindLeadsOutputSchema,
-            },
-        });
+        try {
+            const llmResponse = await ai.generate({
+                prompt: prompt,
+                output: {
+                    schema: FindLeadsOutputSchema,
+                },
+            });
 
-        return llmResponse.output!;
+            if (!llmResponse.output) {
+                console.error('findLeadsTool LLM response was empty.');
+                throw new Error('Failed to generate leads from LLM.');
+            }
+            console.log(`findLeadsTool successful, found ${llmResponse.output.potentialLeads.length} potential leads.`);
+            return llmResponse.output;
+        } catch (error) {
+            console.error('Error in findLeadsTool LLM call:', error);
+            throw error; // Re-throw to be handled by the orchestrator
+        }
     }
 );
 
 export async function findLeads(input: FindLeadsInput) {
-  // Call the backend API route for real lead sourcing
-  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/find-leads`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ leadProfile: input.leadProfile }),
-  });
-  const data = await res.json();
-  if (data.potentialLeads) {
-    return data;
-  } else {
-    throw new Error(data.error || 'Failed to fetch leads');
-  }
+    console.log('Initiating real lead search for profile:', input.leadProfile);
+    try {
+        // In a real app, this would hit an external API. For now, we hit our own API route.
+        const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/find-leads`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ leadProfile: input.leadProfile }),
+        });
+
+        if (!res.ok) {
+            const errorBody = await res.text();
+            console.error('Failed to fetch leads from API. Status:', res.status, 'Body:', errorBody);
+            throw new Error(`Failed to fetch leads. Status: ${res.status}`);
+        }
+
+        const data = await res.json();
+        if (data.error || !data.potentialLeads) {
+            console.error('API returned an error while finding leads:', data.error || 'Unknown API error');
+            throw new Error(data.error || 'Failed to fetch leads from API');
+        }
+
+        console.log(`Successfully found ${data.potentialLeads.length} leads via API.`);
+        return data;
+    } catch (error) {
+        console.error('Critical error in findLeads function:', error);
+        throw error;
+    }
 }

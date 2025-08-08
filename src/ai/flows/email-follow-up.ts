@@ -16,7 +16,19 @@ import {
 } from './email-follow-up.schema';
 
 export async function handleEmailFollowUp(input: EmailFollowUpInput): Promise<EmailFollowUpOutput> {
-  return emailFollowUpFlow(input);
+  console.log('Starting email follow-up analysis for lead profile:', input.leadProfile);
+  try {
+    const result = await emailFollowUpFlow(input);
+    console.log('Email follow-up analysis successful. Suggested action:', result.suggestedAction);
+    return result;
+  } catch (error) {
+    console.error('Critical error in handleEmailFollowUp:', error);
+    // Return a structured error response
+    return {
+      responseEmailBody: '',
+      suggestedAction: 'NEEDS_ATTENTION'
+    };
+  }
 }
 
 const prompt = ai.definePrompt({
@@ -70,7 +82,18 @@ const emailFollowUpFlow = ai.defineFlow(
     outputSchema: EmailFollowUpOutputSchema,
   },
   async (input) => {
-    const { output } = await prompt(input);
-    return output!;
+    console.log('Executing emailFollowUpFlow...');
+    try {
+        const { output } = await prompt(input);
+        if (!output) {
+            throw new Error("AI prompt returned an empty output.");
+        }
+        console.log('emailFollowUpFlow executed successfully.');
+        return output;
+    } catch (error) {
+        console.error('Error within emailFollowUpFlow:', error);
+        // Re-throw the error to be caught by the calling function
+        throw error;
+    }
   }
 );

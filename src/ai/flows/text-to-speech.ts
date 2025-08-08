@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A text-to-speech AI agent.
@@ -17,7 +18,15 @@ import {
 
 
 export async function textToSpeech(input: TextToSpeechInput): Promise<TextToSpeechOutput> {
-    return textToSpeechFlow(input);
+    console.log(`Starting text-to-speech for text: "${input.text.substring(0, 40)}..."`);
+    try {
+        const result = await textToSpeechFlow(input);
+        console.log('Text-to-speech conversion successful.');
+        return result;
+    } catch (error) {
+        console.error('Critical error in textToSpeech:', error);
+        throw new Error('Failed to convert text to speech.');
+    }
 }
 
 async function toWav(
@@ -71,27 +80,40 @@ const textToSpeechFlow = ai.defineFlow(
     outputSchema: TextToSpeechOutputSchema,
   },
   async (query) => {
-    const { media } = await ai.generate({
-      model: googleAI.model('gemini-2.5-flash-preview-tts'),
-      config: {
-        responseModalities: ['AUDIO'],
-        speechConfig: {
-          voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: query.voice || 'Algenib' },
+    console.log('Executing textToSpeechFlow...');
+    try {
+        const { media } = await ai.generate({
+          model: googleAI.model('gemini-2.5-flash-preview-tts'),
+          config: {
+            responseModalities: ['AUDIO'],
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: { voiceName: query.voice || 'Algenib' },
+              },
+            },
           },
-        },
-      },
-      prompt: query.text,
-    });
-    if (!media) {
-      throw new Error('no media returned');
+          prompt: query.text,
+        });
+
+        if (!media) {
+          throw new Error('no media returned from TTS API');
+        }
+
+        const audioBuffer = Buffer.from(
+          media.url.substring(media.url.indexOf(',') + 1),
+          'base64'
+        );
+
+        console.log('Converting PCM to WAV...');
+        const wavData = await toWav(audioBuffer);
+        console.log('WAV conversion complete.');
+
+        return {
+          media: `data:audio/wav;base64,${wavData}`,
+        };
+    } catch (error) {
+        console.error('Error in textToSpeechFlow:', error);
+        throw error;
     }
-    const audioBuffer = Buffer.from(
-      media.url.substring(media.url.indexOf(',') + 1),
-      'base64'
-    );
-    return {
-      media: 'data:audio/wav;base64,' + (await toWav(audioBuffer)),
-    };
   }
 );

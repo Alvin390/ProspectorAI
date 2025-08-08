@@ -16,7 +16,15 @@ import {
 } from './generate-lead-profile.schema';
 
 export async function generateLeadProfile(input: GenerateLeadProfileInput): Promise<GenerateLeadProfileOutput> {
-  return generateLeadProfileFlow(input);
+  console.log('Starting lead profile generation for description:', input.substring(0, 100) + '...');
+  try {
+      const result = await generateLeadProfileFlow(input);
+      console.log('Lead profile generation successful. Suggested Name:', result.suggestedName);
+      return result;
+  } catch (error) {
+      console.error('Critical error in generateLeadProfile:', error);
+      throw new Error('Failed to generate lead profile.');
+  }
 }
 
 const prompt = ai.definePrompt({
@@ -52,7 +60,17 @@ const generateLeadProfileFlow = ai.defineFlow(
     outputSchema: GenerateLeadProfileOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
-    return output!;
+    console.log('Executing generateLeadProfileFlow...');
+    try {
+        const {output} = await prompt(input);
+        if (!output) {
+            throw new Error("AI prompt returned an empty output.");
+        }
+        console.log('generateLeadProfileFlow executed successfully.');
+        return output;
+    } catch (error) {
+        console.error('Error within generateLeadProfileFlow:', error);
+        throw error;
+    }
   }
 );

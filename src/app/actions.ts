@@ -1,3 +1,4 @@
+
 'use server';
 
 import {
@@ -42,22 +43,27 @@ export async function handleGenerateLeadProfile(
   prevState: LeadProfileFormState,
   formData: FormData
 ): Promise<LeadProfileFormState> {
+  console.log("Action: handleGenerateLeadProfile", { prevState, formData: formData.get('description') });
   const schema = z.string().min(10, 'Description is too short');
   const description = formData.get('description') as string;
 
   const validated = schema.safeParse(description);
   if (!validated.success) {
+    const error = validated.error.errors.map((e) => e.message).join(', ');
+    console.error("Validation failed for lead profile generation:", error);
     return {
       message: 'error',
       data: null,
-      error: validated.error.errors.map((e) => e.message).join(', '),
+      error: error,
     };
   }
 
   try {
     const result = await generateLeadProfile(validated.data);
+    console.log("Action: handleGenerateLeadProfile successful.");
     return { message: 'success', data: result, error: null };
   } catch (e: any) {
+    console.error("Action: handleGenerateLeadProfile failed.", e);
     return { message: 'error', data: null, error: e.message || 'An unknown error occurred.' };
   }
 }
@@ -72,6 +78,7 @@ export async function handleGenerateCampaignContent(
   prevState: CampaignContentFormState,
   formData: FormData
 ): Promise<CampaignContentFormState> {
+  console.log("Action: handleGenerateCampaignContent", { prevState, formData: Object.fromEntries(formData) });
   const schema = z.object({
     solutionId: z.string().min(1, 'Please select a solution'),
     leadProfileId: z.string().min(1, 'Please select a lead profile'),
@@ -92,12 +99,12 @@ export async function handleGenerateCampaignContent(
 
     const solution = solutions.find(s => s.id === validated.solutionId);
     if (!solution) {
-      return { message: 'error', data: null, error: 'Selected solution not found.' };
+      throw new Error('Selected solution not found.');
     }
 
     const profile = profiles.find(p => p.id === validated.leadProfileId);
      if (!profile || !profile.profileData) {
-      return { message: 'error', data: null, error: 'Selected lead profile or its data not found.' };
+      throw new Error('Selected lead profile or its data not found.');
     }
 
     // Convert profileData object to a string for the AI prompt
@@ -107,15 +114,15 @@ export async function handleGenerateCampaignContent(
         solutionDescription: solution.description,
         leadProfile: leadProfileString
     });
+    console.log("Action: handleGenerateCampaignContent successful.");
     return { message: 'success', data: result, error: null };
   } catch (e: any) {
      if (e instanceof z.ZodError) {
-        return {
-          message: 'error',
-          data: null,
-          error: e.errors.map((e) => e.message).join(', '),
-        };
+        const error = e.errors.map((err) => err.message).join(', ');
+        console.error("Validation failed for campaign content generation:", error);
+        return { message: 'error', data: null, error };
       }
+    console.error("Action: handleGenerateCampaignContent failed.", e);
     return { message: 'error', data: null, error: e.message || 'An unknown error occurred.' };
   }
 }
@@ -130,15 +137,18 @@ export async function handleTextToSpeech(
     prevState: TextToSpeechState,
     formData: FormData
 ): Promise<TextToSpeechState> {
+    console.log("Action: handleTextToSpeech");
     const schema = z.string().min(1, 'Script is empty');
     const script = formData.get('script') as string;
 
     const validated = schema.safeParse(script);
     if (!validated.success) {
+        const error = validated.error.errors.map((e) => e.message).join(', ');
+        console.error("Validation failed for TTS:", error);
         return {
             message: 'error',
             data: null,
-            error: validated.error.errors.map((e) => e.message).join(', '),
+            error: error,
         };
     }
 
@@ -147,9 +157,10 @@ export async function handleTextToSpeech(
             text: validated.data,
             voice: 'en-US-Neural2-J' // Default voice
         });
+        console.log("Action: handleTextToSpeech successful.");
         return { message: 'success', data: result, error: null };
     } catch (e: any) {
-        console.error('Error in text-to-speech conversion:', e);
+        console.error('Action: handleTextToSpeech failed.', e);
         return {
             message: 'error',
             data: null,
@@ -171,126 +182,68 @@ export async function handleConversationalCall(
   formData: FormData
 ): Promise<ConversationalCallState> {
   try {
-    console.log('Starting handleConversationalCall with form data:', Object.fromEntries(formData.entries()));
+    console.log('Action: handleConversationalCall');
 
-    // Validate required fields
     const requiredFields = ['solutionDescription', 'leadProfile', 'callScript', 'conversationHistory'];
     const missingFields = requiredFields.filter(field => !formData.has(field));
 
     if (missingFields.length > 0) {
       const errorMsg = `Missing required fields: ${missingFields.join(', ')}`;
-      console.error(errorMsg);
-      return {
-        ...prevState,
-        message: 'error',
-        error: errorMsg,
-      };
+      console.error("Validation failed for conversational call:", errorMsg);
+      return { ...prevState, message: 'error', error: errorMsg };
     }
 
-    // Parse and validate conversation history
     let conversationHistory: Array<{ role: 'agent' | 'lead'; text: string; audio: string }>;
     try {
       const parsed = JSON.parse(formData.get('conversationHistory') as string || '[]');
-      if (!Array.isArray(parsed)) {
-        throw new Error('conversationHistory must be an array');
-      }
-
-      // Validate and normalize the conversation history
-      conversationHistory = parsed.map(item => {
-        const role = item.role === 'agent' || item.role === 'lead' ? item.role : 'agent';
-        return {
-          role,
-          text: String(item.text || ''),
-          audio: item.audio ? String(item.audio) : '',
-        };
-      });
+      if (!Array.isArray(parsed)) throw new Error('conversationHistory must be an array');
+      conversationHistory = parsed.map(item => ({
+        role: item.role === 'agent' || item.role === 'lead' ? item.role : 'agent',
+        text: String(item.text || ''),
+        audio: item.audio ? String(item.audio) : '',
+      }));
     } catch (parseError) {
       const errorMsg = 'Invalid conversation history format';
       console.error(errorMsg, parseError);
-      return {
-        ...prevState,
-        message: 'error',
-        error: errorMsg,
-      };
+      return { ...prevState, message: 'error', error: errorMsg };
     }
 
     const solutionDescription = formData.get('solutionDescription') as string;
     const leadProfile = formData.get('leadProfile') as string;
     const callScript = formData.get('callScript') as string;
 
-    // If this is the first turn, start with the call script
     if (conversationHistory.length === 0 && callScript) {
       console.log('Starting new conversation with call script');
-      conversationHistory.push({
-        role: 'agent',
-        text: callScript,
-        audio: '', // Will be filled in after audio generation
-      });
+      conversationHistory.push({ role: 'agent', text: callScript, audio: '' });
     }
 
     console.log('Generating next conversation turn with history length:', conversationHistory.length);
 
-    // Generate the next turn in the conversation
     const response = await conversationalCall({
       solutionDescription,
       leadProfile,
       callScript,
-      conversationHistory: conversationHistory.map(({ role, text }) => ({
-        role,
-        text,
-      })),
+      conversationHistory: conversationHistory.map(({ role, text }) => ({ role, text })),
     });
 
-    // Validate the response
     if (!response.agentResponseText || !response.leadResponseText) {
       throw new Error('Invalid response from conversational AI');
     }
 
-    // Add the agent's response to history
     const newHistory = [
       ...conversationHistory,
-      {
-        role: 'agent' as const,
-        text: response.agentResponseText,
-        audio: response.agentResponseAudio,
-      },
-      {
-        role: 'lead' as const,
-        text: response.leadResponseText,
-        audio: response.leadResponseAudio,
-      },
+      { role: 'agent' as const, text: response.agentResponseText, audio: response.agentResponseAudio },
+      { role: 'lead' as const, text: response.leadResponseText, audio: response.leadResponseAudio },
     ];
 
-    console.log('Successfully generated conversation turn');
+    console.log('Action: handleConversationalCall successful.');
 
-    return {
-      ...prevState,
-      message: '',
-      data: response,
-      history: newHistory,
-      error: null,
-    };
-  } catch (error) {
-    console.error('Error in handleConversationalCall:', error);
-
-    // Provide more detailed error information
+    return { ...prevState, message: 'success', data: response, history: newHistory, error: null };
+  } catch (error: any) {
+    console.error('Action: handleConversationalCall failed.', error);
     let errorMessage = 'An unexpected error occurred';
-    if (error instanceof Error) {
-      errorMessage = error.message;
-
-      // Handle specific error cases
-      if (error.message.includes('unexpected response')) {
-        errorMessage = 'The AI returned an unexpected response format. Please try again.';
-      } else if (error.message.includes('rate limit')) {
-        errorMessage = 'Rate limit exceeded. Please wait a moment and try again.';
-      }
-    }
-
-    return {
-      ...prevState,
-      message: 'error',
-      error: errorMessage,
-    };
+    if (error instanceof Error) errorMessage = error.message;
+    return { ...prevState, message: 'error', error: errorMessage };
   }
 }
 
@@ -304,18 +257,20 @@ interface OrchestratorState {
     error: string | null;
 }
 
-const callStatuses: CallLog['status'][] = ['Meeting Booked', 'Not Interested', 'Follow-up Required'];
-const emailStatuses: EmailLog['status'][] = ['sent', 'opened', 'replied', 'bounced'];
-
-export async function handleRunOrchestrator(campaign: Campaign, solutions: Solution[], profiles: LeadProfile[]): Promise<OrchestratorState> { // Replace all references to Profile with LeadProfile
+export async function handleRunOrchestrator(campaign: Campaign, solutions: Solution[], profiles: LeadProfile[]): Promise<OrchestratorState> {
+    console.log(`Action: handleRunOrchestrator for campaign ID: ${campaign.id}`);
     const solution = solutions.find(s => s.id === campaign.solutionId);
     if (!solution) {
-        return { message: 'error', data: null, error: 'Solution definition not found for this campaign.' };
+        const error = 'Solution definition not found for this campaign.';
+        console.error(error);
+        return { message: 'error', data: null, error };
     }
 
     const profile = profiles.find(p => p.id === campaign.leadProfileId);
     if (!profile || !profile.profileData) {
-        return { message: 'error', data: null, error: 'Lead profile data not found for this campaign.' };
+        const error = 'Lead profile data not found for this campaign.';
+        console.error(error);
+        return { message: 'error', data: null, error };
     }
 
     const leadProfileString = `Attributes: ${profile.profileData.attributes}\nOnline Presence: ${profile.profileData.onlinePresence}`;
@@ -327,78 +282,51 @@ export async function handleRunOrchestrator(campaign: Campaign, solutions: Solut
             leadProfile: leadProfileString,
         });
 
-        // Generate mock logs based on the orchestration plan
+        console.log('Orchestrator run completed. Generating mock logs...');
         const callLogs: CallLog[] = [];
         const emailLogs: EmailLog[] = [];
-        const solutionName = solution.name || 'Unknown Solution';
 
-        // Use Promise.all to generate email content in parallel for efficiency
         const emailContentPromises = result.outreachPlan
             .filter(step => step.action === 'EMAIL')
-            .map(step => {
-                // We create a unique lead profile string for each lead for more personalization
-                 const leadInfo = {
-                    name: step.leadId.split('-')[0] || 'Unknown Lead',
-                    company: step.leadId.split('-')[1] || 'Unknown Company',
-                };
-                const personalizedLeadProfile = `Name: ${leadInfo.name}\nCompany: ${leadInfo.company}\n${leadProfileString}`;
-                return generateCampaignContent({
-                    solutionDescription: solution.description,
-                    leadProfile: personalizedLeadProfile
-                });
-            });
+            .map(step => generateCampaignContent({
+                solutionDescription: solution.description,
+                leadProfile: `Name: ${step.leadId.split('-')[0]}\nCompany: ${step.leadId.split('-')[1]}\n${leadProfileString}`
+            }));
 
         const emailContents = await Promise.all(emailContentPromises);
         let emailContentIndex = 0;
 
         result.outreachPlan.forEach((step, index) => {
-             const lead = {
+            const lead = {
                 id: step.leadId,
                 name: step.leadId.split('-')[0] || 'Unknown Lead',
                 company: step.leadId.split('-')[1] || 'Unknown Company',
-                contact: `contact@${(step.leadId.split('-')[1] || 'domain').toLowerCase().replace(/\s+/g, '')}.com`
             }
 
             if (step.action === 'CALL') {
                 callLogs.push({
-                    id: `call-${campaign.id}-${index}`,
-                    leadId: lead.id,
-                    campaignId: campaign.id,
-                    status: 'Meeting Booked',
-                    summary: `AI summary for call to ${lead.name}. ${step.reasoning}`,
-                    scheduledTime: Timestamp.now(),
-                    createdAt: Timestamp.now(),
-                    createdBy: campaign.id
+                    id: `call-${campaign.id}-${index}`, leadId: lead.id, campaignId: campaign.id,
+                    status: 'Meeting Booked', summary: `AI summary for call to ${lead.name}. ${step.reasoning}`,
+                    scheduledTime: Timestamp.now(), createdAt: Timestamp.now(), createdBy: campaign.id
                 });
             } else if (step.action === 'EMAIL') {
                  const content = emailContents[emailContentIndex++];
                  if (content) {
                     emailLogs.push({
-                        id: `email-${campaign.id}-${index}`,
-                        leadId: lead.id,
-                        campaignId: campaign.id,
+                        id: `email-${campaign.id}-${index}`, leadId: lead.id, campaignId: campaign.id,
                         subject: content.emailScript.split('\n')[0].replace('Subject: ', ''),
-                        content: content.emailScript,
-                        status: emailStatuses[index % emailStatuses.length],
-                        createdAt: Timestamp.now(),
-                        createdBy: campaign.id,
-                        sentAt: Timestamp.now()
+                        content: content.emailScript, status: 'sent', createdAt: Timestamp.now(),
+                        createdBy: campaign.id, sentAt: Timestamp.now()
                     });
                  }
             }
         });
+        console.log(`Generated ${callLogs.length} call logs and ${emailLogs.length} email logs.`);
 
-        return {
-            message: 'success',
-            data: {
-                orchestrationPlan: result,
-                callLogs,
-                emailLogs
-            },
-            error: null
-        };
+        return { message: 'success', data: { orchestrationPlan: result, callLogs, emailLogs }, error: null };
 
     } catch (e: any) {
+        console.error("Action: handleRunOrchestrator failed.", e);
         return { message: 'error', data: null, error: e.message || 'An unknown error occurred while running the orchestrator.' };
     }
 }
@@ -412,12 +340,13 @@ interface EmailFollowUpState {
 export async function handleAIEmailFollowUp(
     input: EmailFollowUpInput
 ): Promise<EmailFollowUpState> {
+    console.log("Action: handleAIEmailFollowUp");
     try {
         const result = await handleEmailFollowUp(input);
+        console.log("Action: handleAIEmailFollowUp successful.");
         return { message: 'success', data: result, error: null };
     } catch (e: any) {
+        console.error("Action: handleAIEmailFollowUp failed.", e);
         return { message: 'error', data: null, error: e.message || 'An unknown error occurred.' };
     }
 }
-
-// No changes needed for context/provider errors.

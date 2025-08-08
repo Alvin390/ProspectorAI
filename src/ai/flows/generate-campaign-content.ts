@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -19,11 +20,19 @@ import { googleAI } from '@genkit-ai/googleai';
 export async function generateCampaignContent(
   input: GenerateCampaignContentInput
 ): Promise<GenerateCampaignContentOutput> {
-  // Pass enrichment data to the prompt context
-  return generateCampaignContentFlow({
-    ...input,
-    enrichment: input.enrichment,
-  });
+  console.log('Starting campaign content generation for lead profile:', input.leadProfile);
+  try {
+    const result = await generateCampaignContentFlow({
+      ...input,
+      enrichment: input.enrichment,
+    });
+    console.log('Campaign content generated successfully.');
+    return result;
+  } catch (error) {
+      console.error('Critical error in generateCampaignContent:', error);
+      // Return a fallback object or rethrow
+      throw new Error('Failed to generate campaign content.');
+  }
 }
 
 const prompt = ai.definePrompt({
@@ -69,7 +78,17 @@ const generateCampaignContentFlow = ai.defineFlow(
     outputSchema: GenerateCampaignContentOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
-    return output!;
+    console.log('Executing generateCampaignContentFlow...');
+    try {
+        const {output} = await prompt(input);
+        if (!output) {
+            throw new Error("AI prompt returned empty output.");
+        }
+        console.log('generateCampaignContentFlow executed successfully.');
+        return output;
+    } catch (error) {
+        console.error('Error in generateCampaignContentFlow:', error);
+        throw error; // Rethrow to be handled by the main function
+    }
   }
 );
