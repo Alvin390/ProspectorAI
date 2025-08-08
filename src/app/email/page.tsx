@@ -44,10 +44,10 @@ export interface EmailLog {
   createdBy: string;
   sentAt: Timestamp;
   enrichment?: {
+    linkedin?: string;
     jobTitle?: string;
     interests?: string[];
     recentNews?: string;
-    linkedinUrl?: string;
   };
 }
 
@@ -171,7 +171,7 @@ export default function EmailLogPage() {
                   {selectedEmail.enrichment?.jobTitle && <div><strong>Job Title:</strong> {selectedEmail.enrichment.jobTitle}</div>}
                   {selectedEmail.enrichment?.interests && <div><strong>Interests:</strong> {selectedEmail.enrichment.interests.join(', ')}</div>}
                   {selectedEmail.enrichment?.recentNews && <div><strong>Recent News:</strong> {selectedEmail.enrichment.recentNews}</div>}
-                  {selectedEmail.enrichment?.linkedinUrl && <div><strong>LinkedIn:</strong> <Link href={selectedEmail.enrichment.linkedinUrl} target="_blank" className="text-primary underline">View Profile</Link></div>}
+                  {selectedEmail.enrichment?.linkedin && <div><strong>LinkedIn:</strong> <Link href={selectedEmail.enrichment.linkedin} target="_blank" className="text-primary underline">View Profile</Link></div>}
                   
                   <div className='pt-4'>
                     <Alert>

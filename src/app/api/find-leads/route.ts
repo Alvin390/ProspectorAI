@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
           body: JSON.stringify({
             q_organization_domains: [],
             person_titles: ['CEO', 'Founder', 'VP', 'Director', 'CTO'],
-            page: 1, per_page: 10,
+            page: 1, per_page: 5, // Keep it small for demo
             ...leadProfile && { q_keywords: leadProfile },
           }),
         });
@@ -59,7 +59,15 @@ export async function POST(req: NextRequest) {
             contact: p.email || p.linkedin_url || '', jobTitle: p.title || '',
         })) || [];
     }},
-    // Add other sources like Clay, Hunter, SerpAPI here in the same pattern
+    { name: 'Clay.com', fn: async () => {
+        // This is a MOCK function to simulate another data source
+        console.log('Simulating query to Clay.com...');
+        await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network latency
+        return [
+            { id: 'Jane Doe-Innovate Inc.', name: 'Jane Doe', company: 'Innovate Inc.', contact: 'jane.d@innovate.com', jobTitle: 'VP of Engineering' },
+            { id: 'John Smith-RetailGiant Corp.', name: 'John Smith', company: 'RetailGiant Corp.', contact: 'jsmith@retailgiant.co', jobTitle: 'Director of Marketing' },
+        ];
+    }}
   ];
 
   // Run all sources concurrently

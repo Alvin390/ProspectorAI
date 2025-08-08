@@ -28,7 +28,7 @@ import type { EmailFollowUpInput, EmailFollowUpOutput } from '@/ai/flows/email-f
 import { z } from 'zod';
 import type { Campaign } from './campaigns/page';
 import type { Solution } from './solutions/data';
-import type { LeadProfile } from './leads/data'; // Fix import here
+import type { LeadProfile } from './leads/data';
 import type { CallLog } from './calling/page';
 import type { EmailLog } from './email/page';
 import { addDoc, collection, serverTimestamp, Timestamp } from 'firebase/firestore';
@@ -251,12 +251,30 @@ export async function handleConversationalCall(
   }
 }
 
+// Helper to convert Firestore Timestamps to serializable strings
+const serializeTimestamps = (obj: any): any => {
+    if (obj instanceof Timestamp) {
+        return obj.toDate().toISOString();
+    }
+    if (Array.isArray(obj)) {
+        return obj.map(serializeTimestamps);
+    }
+    if (typeof obj === 'object' && obj !== null) {
+        const newObj: { [key: string]: any } = {};
+        for (const key in obj) {
+            newObj[key] = serializeTimestamps(obj[key]);
+        }
+        return newObj;
+    }
+    return obj;
+};
+
 interface OrchestratorState {
     message: string;
     data: {
         orchestrationPlan: OutreachOrchestratorOutput;
-        callLogs: CallLog[];
-        emailLogs: EmailLog[];
+        callLogs: any[]; // Use any[] after serialization
+        emailLogs: any[]; // Use any[] after serialization
     } | null;
     error: string | null;
 }
@@ -287,47 +305,74 @@ export async function handleRunOrchestrator(campaign: Campaign, solutions: Solut
         });
 
         console.log('Orchestrator run completed. Generating mock logs...');
-        const callLogs: CallLog[] = [];
-        const emailLogs: EmailLog[] = [];
+        const callLogs: Omit<CallLog, 'id'>[] = [];
+        const emailLogs: Omit<EmailLog, 'id'>[] = [];
 
-        const emailContentPromises = result.outreachPlan
-            .filter(step => step.action === 'EMAIL')
-            .map(step => generateCampaignContent({
-                solutionDescription: solution.description,
-                leadProfile: `Name: ${step.leadId.split('-')[0]}\nCompany: ${step.leadId.split('-')[1]}\n${leadProfileString}`
-            }));
-
-        const emailContents = await Promise.all(emailContentPromises);
-        let emailContentIndex = 0;
-
-        result.outreachPlan.forEach((step, index) => {
-            const lead = {
+        // Enrich the leads with campaign content in parallel
+        const contentGenerationPromises = result.outreachPlan.map(step => {
+             const lead = {
                 id: step.leadId,
                 name: step.leadId.split('-')[0] || 'Unknown Lead',
                 company: step.leadId.split('-')[1] || 'Unknown Company',
             }
+            if (step.action === 'EMAIL' || step.action === 'CALL') {
+                 return generateCampaignContent({
+                    solutionDescription: solution.description,
+                    leadProfile: `Name: ${lead.name}\nCompany: ${lead.company}\n${leadProfileString}`,
+                    enrichment: step.enrichment, // Pass enrichment data
+                }).then(content => ({ ...step, content }));
+            }
+            return Promise.resolve(step);
+        });
 
-            if (step.action === 'CALL') {
+        const stepsWithContent = await Promise.all(contentGenerationPromises);
+        
+        stepsWithContent.forEach((step: any, index) => {
+            const lead = {
+                id: step.leadId,
+                name: step.leadId.split('-')[0] || 'Unknown Lead',
+                company: step.leadId.split('-')[1] || 'Unknown Company',
+            };
+
+            if (step.action === 'CALL' && step.content) {
                 callLogs.push({
-                    id: `call-${campaign.id}-${index}`, leadId: lead.id, campaignId: campaign.id,
-                    status: 'Meeting Booked', summary: `AI summary for call to ${lead.name}. ${step.reasoning}`,
-                    scheduledTime: Timestamp.now(), createdAt: Timestamp.now(), createdBy: campaign.id
+                    leadId: lead.id,
+                    campaignId: campaign.id,
+                    status: 'Meeting Booked', // Mock status
+                    summary: `AI summary for call to ${lead.name}. ${step.reasoning}`,
+                    scheduledTime: Timestamp.now(),
+                    createdAt: Timestamp.now(),
+                    createdBy: campaign.id, // Using campaign ID as mock creator
                 });
-            } else if (step.action === 'EMAIL') {
-                 const content = emailContents[emailContentIndex++];
-                 if (content) {
-                    emailLogs.push({
-                        id: `email-${campaign.id}-${index}`, leadId: lead.id, campaignId: campaign.id,
-                        subject: content.emailScript.split('\n')[0].replace('Subject: ', ''),
-                        content: content.emailScript, status: 'sent', createdAt: Timestamp.now(),
-                        createdBy: campaign.id, sentAt: Timestamp.now()
-                    });
-                 }
+            } else if (step.action === 'EMAIL' && step.content) {
+                emailLogs.push({
+                    leadId: lead.id,
+                    campaignId: campaign.id,
+                    subject: step.content.emailScript.split('\n')[0].replace('Subject: ', ''),
+                    content: step.content.emailScript,
+                    status: 'sent', // Mock status
+                    createdAt: Timestamp.now(),
+                    createdBy: campaign.id, // Using campaign ID as mock creator
+                    sentAt: Timestamp.now(),
+                    enrichment: step.enrichment,
+                });
             }
         });
-        console.log(`Generated ${callLogs.length} call logs and ${emailLogs.length} email logs.`);
 
-        return { message: 'success', data: { orchestrationPlan: result, callLogs, emailLogs }, error: null };
+        console.log(`Generated ${callLogs.length} call logs and ${emailLogs.length} email logs.`);
+        
+        // Add to Firestore (original objects with Timestamps)
+        if (callLogs.length > 0) await addCallLogs(callLogs);
+        if (emailLogs.length > 0) await addEmailLogs(emailLogs);
+
+        // Serialize data before returning to the client
+        const serializedData = {
+            orchestrationPlan: result,
+            callLogs: serializeTimestamps(callLogs),
+            emailLogs: serializeTimestamps(emailLogs),
+        };
+
+        return { message: 'success', data: serializedData, error: null };
 
     } catch (e: any) {
         console.error("Action: handleRunOrchestrator failed.", e);
@@ -372,16 +417,39 @@ async function addDocWithUser(collectionName: string, data: any) {
 export async function addLeads(newLeads: Partial<LeadProfile>[]) {
   try {
     console.log(`Action: addLeads. Attempting to add ${newLeads.length} leads.`);
-    for (const lead of newLeads) {
-      await addDocWithUser(COLLECTIONS.LEADS, {
+    const promises = newLeads.map(lead => addDocWithUser(COLLECTIONS.LEADS, {
         ...lead,
-        status: 'new', // Default status for new leads
-      });
-    }
+        status: 'new',
+      }));
+    await Promise.all(promises);
     console.log(`Action: addLeads successful. Added ${newLeads.length} leads.`);
   } catch (error) {
     console.error("Action: addLeads failed.", error);
     // We don't rethrow here to prevent the entire orchestrator from failing
     // if one lead fails to save, but we log it as a critical error.
   }
+}
+
+// Standalone server action to add call logs to Firestore
+export async function addCallLogs(newLogs: Omit<CallLog, 'id'>[]) {
+    if (!auth.currentUser) {
+        console.error("Cannot add call logs: user is not authenticated.");
+        return;
+    }
+    console.log(`Action: addCallLogs. Attempting to add ${newLogs.length} logs.`);
+    const promises = newLogs.map(log => addDocWithUser(COLLECTIONS.CALL_LOGS, log));
+    await Promise.all(promises);
+    console.log(`Action: addCallLogs successful.`);
+}
+
+// Standalone server action to add email logs to Firestore
+export async function addEmailLogs(newLogs: Omit<EmailLog, 'id'>[]) {
+    if (!auth.currentUser) {
+        console.error("Cannot add email logs: user is not authenticated.");
+        return;
+    }
+    console.log(`Action: addEmailLogs. Attempting to add ${newLogs.length} logs.`);
+    const promises = newLogs.map(log => addDocWithUser(COLLECTIONS.EMAIL_LOGS, log));
+    await Promise.all(promises);
+    console.log(`Action: addEmailLogs successful.`);
 }

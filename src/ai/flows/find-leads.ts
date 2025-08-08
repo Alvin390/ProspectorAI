@@ -30,13 +30,14 @@ export const findLeadsTool = ai.defineTool(
         - A company name (e.g., "Innovate Inc.")
         - A unique ID combining the name and company (e.g., "Alex Johnson-Innovate Inc.")
         - Plausible contact information (a professional email address or a phone number).
+        - **Crucially, generate plausible "enrichment" data for each lead. This is the most important part. Simulate finding specific details like their job title, a link to a fictional LinkedIn profile, recent company news (e.g., "Innovate Inc. just launched a new product"), and professional interests (e.g., "AI in FinTech"). This data is critical for personalizing outreach.**
         
         ---
         **Ideal Customer Profile to Analyze:**
         ${input.leadProfile}
         ---
         
-        Generate the list of potential leads now.`;
+        Generate the list of potential leads with detailed enrichment data now.`;
 
         try {
             const llmResponse = await ai.generate({
