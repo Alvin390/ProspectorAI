@@ -1,16 +1,17 @@
-
+import { Timestamp } from 'firebase/firestore';
 import type { GenerateLeadProfileOutput } from "@/ai/flows/generate-lead-profile.schema";
 
-export interface Profile {
+export interface LeadProfile {
   id: string;
   name: string;
   description: string;
   status: 'Completed';
   createdAt: string;
   profileData: GenerateLeadProfileOutput | null;
+  createdBy?: string;
 }
 
-export const initialProfiles: Profile[] = [
+export const initialProfiles: LeadProfile[] = [
   {
     id: '1',
     name: 'Silicon Valley Startups',
