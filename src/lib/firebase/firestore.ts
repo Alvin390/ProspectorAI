@@ -12,7 +12,8 @@ import {
   DocumentReference,
   QueryDocumentSnapshot,
   QuerySnapshot,
-  FieldValue
+  FieldValue,
+  writeBatch
 } from 'firebase/firestore';
 
 // Import the initialized Firestore instance
@@ -177,3 +178,29 @@ export const campaignService = {
     return snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Campaign));
   }
 };
+
+// Save multiple enriched leads to Firestore (for hyperpersonalization)
+export async function saveLeadsToFirebase(leads: any[]): Promise<void> {
+  if (!Array.isArray(leads) || leads.length === 0) return;
+  const batch = writeBatch(db);
+  leads.forEach((lead: any) => {
+    // Use lead.id if available, otherwise generate a new doc
+    const leadRef = lead.id
+      ? doc(db, COLLECTIONS.LEADS, lead.id)
+      : doc(collection(db, COLLECTIONS.LEADS));
+    batch.set(leadRef, {
+      ...lead,
+      // Flatten enrichment fields if present
+      jobTitle: lead.enrichment?.jobTitle || lead.jobTitle || '',
+      interests: lead.enrichment?.interests || lead.interests || [],
+      recentNews: lead.enrichment?.recentNews || lead.recentNews || '',
+      linkedinUrl: lead.enrichment?.linkedin || lead.linkedinUrl || '',
+      updatedAt: serverTimestamp(),
+      createdAt: lead.createdAt || serverTimestamp(),
+      status: lead.status || 'new',
+      notes: lead.notes || '',
+      createdBy: lead.createdBy || '',
+    });
+  });
+  await batch.commit();
+}
