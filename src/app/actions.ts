@@ -27,7 +27,7 @@ import type { EmailFollowUpInput, EmailFollowUpOutput } from '@/ai/flows/email-f
 import { z } from 'zod';
 import type { Campaign } from './campaigns/page';
 import type { Solution } from './solutions/data';
-import type { Profile } from './leads/data';
+import type { LeadProfile } from './leads/data'; // Fix import here
 import type { CallLog } from './calling/page';
 import type { EmailLog } from './email/page';
 import { serverTimestamp, Timestamp } from 'firebase/firestore';
@@ -88,7 +88,7 @@ export async function handleGenerateCampaignContent(
     });
 
     const solutions: Solution[] = JSON.parse(validated.solutions);
-    const profiles: Profile[] = JSON.parse(validated.profiles);
+    const profiles: LeadProfile[] = JSON.parse(validated.profiles); // Replace all references to Profile with LeadProfile
 
     const solution = solutions.find(s => s.id === validated.solutionId);
     if (!solution) {
@@ -307,7 +307,7 @@ interface OrchestratorState {
 const callStatuses: CallLog['status'][] = ['Meeting Booked', 'Not Interested', 'Follow-up Required'];
 const emailStatuses: EmailLog['status'][] = ['sent', 'opened', 'replied', 'bounced'];
 
-export async function handleRunOrchestrator(campaign: Campaign, solutions: Solution[], profiles: Profile[]): Promise<OrchestratorState> {
+export async function handleRunOrchestrator(campaign: Campaign, solutions: Solution[], profiles: LeadProfile[]): Promise<OrchestratorState> { // Replace all references to Profile with LeadProfile
     const solution = solutions.find(s => s.id === campaign.solutionId);
     if (!solution) {
         return { message: 'error', data: null, error: 'Solution definition not found for this campaign.' };
@@ -419,3 +419,5 @@ export async function handleAIEmailFollowUp(
         return { message: 'error', data: null, error: e.message || 'An unknown error occurred.' };
     }
 }
+
+// No changes needed for context/provider errors.

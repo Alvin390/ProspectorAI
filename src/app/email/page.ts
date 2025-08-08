@@ -1,4 +1,3 @@
-// ...existing code...
 import {Timestamp} from "firebase/firestore";
 
 export interface EmailLog {
@@ -12,4 +11,3 @@ export interface EmailLog {
   createdBy: string;
   sentAt: Timestamp;
 }
-

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useActionState, useState, useEffect } from 'react';
@@ -20,7 +19,7 @@ import {
 } from '@/components/ui/select';
 import type { Solution } from '@/app/solutions/data';
 import type { GenerateLeadProfileOutput } from '@/ai/flows/generate-lead-profile.schema';
-import type { Profile } from './data';
+import type { LeadProfile } from './data';
 
 const initialState = {
   message: '',
@@ -39,12 +38,12 @@ function SubmitButton() {
 
 interface LeadProfilingFormProps {
   solutions: Solution[];
-  onProfileSave: (profileData: Partial<Profile>, data: GenerateLeadProfileOutput) => void;
-  editingProfile?: Profile | null;
-  onCancel: () => void;
+  onProfileSaveAction: (profileData: Partial<LeadProfile>, data: GenerateLeadProfileOutput) => void; // Rename for TS71007
+  editingProfile?: LeadProfile | null; // Fix type here
+  onCancelAction: () => void; // Rename for TS71007
 }
 
-export function LeadProfilingForm({ solutions, onProfileSave, editingProfile, onCancel }: LeadProfilingFormProps) {
+export function LeadProfilingForm({ solutions, onProfileSaveAction, editingProfile, onCancelAction }: LeadProfilingFormProps) {
   const [state, formAction] = useActionState(handleGenerateLeadProfile, initialState);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -80,15 +79,15 @@ export function LeadProfilingForm({ solutions, onProfileSave, editingProfile, on
       setDescription('');
     }
   };
-  
+
   const handleSaveClick = () => {
     if (generatedData && name && description) {
-        const profileData: Partial<Profile> = {
+        const profileData: Partial<LeadProfile> = {
             id: editingProfile?.id,
             name: name,
             description: description,
         };
-        onProfileSave(profileData, generatedData);
+        onProfileSaveAction(profileData, generatedData);
         // Reset form after saving
         setName('');
         setDescription('');
@@ -147,8 +146,8 @@ export function LeadProfilingForm({ solutions, onProfileSave, editingProfile, on
             <div className='space-y-2 pt-4'>
                 <Label htmlFor='profile-name'>Profile Name</Label>
                 <p className="text-sm text-muted-foreground">Give this generated profile a short, memorable name. The AI has suggested one for you.</p>
-                <Input 
-                    id="profile-name" 
+                <Input
+                    id="profile-name"
                     placeholder="e.g., NY FinTech Startups"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
@@ -173,7 +172,7 @@ export function LeadProfilingForm({ solutions, onProfileSave, editingProfile, on
             </Card>
             </div>
             <div className="flex justify-end gap-2">
-                {editingProfile && <Button variant="outline" onClick={onCancel}>Cancel</Button>}
+                {editingProfile && <Button variant="outline" onClick={onCancelAction}>Cancel</Button>}
                 <Button onClick={handleSaveClick} disabled={!name}>
                     <Save className="mr-2 h-4 w-4" />
                     {editingProfile ? 'Update Profile' : 'Save New Profile'}
@@ -184,3 +183,5 @@ export function LeadProfilingForm({ solutions, onProfileSave, editingProfile, on
     </div>
   );
 }
+
+// No changes needed if DataProvider wraps the app.

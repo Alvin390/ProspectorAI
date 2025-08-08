@@ -1,9 +1,8 @@
-
 import {Timestamp} from "firebase/firestore";
 
 export interface CallLog {
   id: string;
-  leadId: string; // <-- Add this property
+  leadId: string;
   campaignId: string;
   status: 'Meeting Booked' | 'Not Interested' | 'Follow-up Required';
   summary: string;
@@ -11,5 +10,3 @@ export interface CallLog {
   createdAt: Timestamp;
   createdBy: string;
 }
-
-

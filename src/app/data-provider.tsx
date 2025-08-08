@@ -6,6 +6,13 @@ import { COLLECTIONS } from '@/lib/firebase/firestore';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, User as FirebaseUser } from 'firebase/auth';
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
 
+// Fix LeadProfile import to match your actual export
+import type { Solution } from '@/app/solutions/data';
+import type { LeadProfile } from '@/app/leads/data'; // Ensure this is exported from leads/data
+import type { Campaign } from '@/app/campaigns/page';
+import type { CallLog } from '@/app/calling/page';
+import type { EmailLog } from '@/app/email/page';
+
 interface DataContextType {
   user: FirebaseUser | null;
   signInWithGoogle: () => Promise<void>;
@@ -20,9 +27,9 @@ interface DataContextType {
   allEmailLogs: EmailLog[];
   setAllEmailLogs: React.Dispatch<React.SetStateAction<EmailLog[]>>;
   isLoading: boolean;
-  addCallLogs: (newLogs: CallLog[]) => Promise<void>;
-  addEmailLogs: (newLogs: EmailLog[]) => Promise<void>;
-  addLeads: (newLeads: LeadProfile[]) => Promise<void>;
+  addCallLogs: (newLogs: Omit<CallLog, 'id' | 'createdAt' | 'createdBy'>[]) => Promise<void>;
+  addEmailLogs: (newLogs: Omit<EmailLog, 'id' | 'createdAt' | 'createdBy'>[]) => Promise<void>;
+  addLeads: (newLeads: Omit<LeadProfile, 'id' | 'createdAt' | 'createdBy'>[]) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -56,27 +63,27 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     // Solutions
     const solutionsQuery = query(collection(db, COLLECTIONS.SOLUTIONS), where('createdBy', '==', user.uid));
     const unsubSolutions = onSnapshot(solutionsQuery, (snapshot) => {
-      setSolutions(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
+      setSolutions(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Solution)));
     });
     // Profiles
     const profilesQuery = query(collection(db, COLLECTIONS.LEADS), where('createdBy', '==', user.uid));
     const unsubProfiles = onSnapshot(profilesQuery, (snapshot) => {
-      setProfiles(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
+      setProfiles(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as LeadProfile)));
     });
     // Campaigns
     const campaignsQuery = query(collection(db, COLLECTIONS.CAMPAIGNS), where('createdBy', '==', user.uid));
     const unsubCampaigns = onSnapshot(campaignsQuery, (snapshot) => {
-      setCampaigns(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
+      setCampaigns(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Campaign)));
     });
     // Call Logs
     const callLogsQuery = query(collection(db, COLLECTIONS.CALL_LOGS), where('createdBy', '==', user.uid));
     const unsubCallLogs = onSnapshot(callLogsQuery, (snapshot) => {
-      setAllCallLogs(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
+      setAllCallLogs(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as CallLog)));
     });
     // Email Logs
     const emailLogsQuery = query(collection(db, COLLECTIONS.EMAIL_LOGS), where('createdBy', '==', user.uid));
     const unsubEmailLogs = onSnapshot(emailLogsQuery, (snapshot) => {
-      setAllEmailLogs(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
+      setAllEmailLogs(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as EmailLog)));
     });
     setIsLoading(false);
     return () => {
@@ -148,7 +155,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 export function useData() {
   const context = useContext(DataContext);
   if (context === undefined) {
-    throw new Error('useData must be used within a DataProvider');
+    // Add a more helpful error message for debugging
+    throw new Error('useData must be used within a DataProvider. Make sure your component tree is wrapped in <DataProvider>.');
   }
   return context;
 }

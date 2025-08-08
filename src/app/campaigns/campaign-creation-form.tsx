@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useActionState, useState, useEffect, useRef } from 'react';
@@ -27,7 +26,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { Solution } from '@/app/solutions/data';
 import type { GenerateCampaignContentOutput } from '@/ai/flows/generate-campaign-content.schema';
 import type { Campaign } from './page';
-import type { Profile } from '@/app/leads/data';
+import type { LeadProfile } from '@/app/leads/data'; // Fix import here
 
 const initialState = {
   message: '',
@@ -46,13 +45,13 @@ function SubmitButton({ disabled }: { disabled?: boolean }) {
 
 interface CampaignCreationFormProps {
     solutions: Solution[];
-    profiles: Profile[];
-    onCampaignSubmit: (campaignData: Omit<Campaign, 'id' | 'status'>) => void;
+    profiles: LeadProfile[]; // Fix type here
+    onCampaignSubmitAction: (campaignData: Omit<Campaign, 'id' | 'status'>) => void; // Rename for TS71007
     editingCampaign: Campaign | null;
-    clearEditing: () => void;
+    clearEditingAction: () => void; // Rename for TS71007
 }
 
-export function CampaignCreationForm({ solutions, profiles, onCampaignSubmit, editingCampaign, clearEditing }: CampaignCreationFormProps) {
+export function CampaignCreationForm({ solutions, profiles, onCampaignSubmitAction, editingCampaign, clearEditingAction }: CampaignCreationFormProps) {
   const [state, formAction] = useActionState(handleGenerateCampaignContent, initialState);
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
@@ -76,7 +75,7 @@ export function CampaignCreationForm({ solutions, profiles, onCampaignSubmit, ed
         callScript: editingCampaign.callScript,
       });
       // Clear action state to prevent re-showing old errors
-      state.message = ''; 
+      state.message = '';
     } else {
       // Reset form when not editing or when editingCampaign is cleared
       resetFormState();
@@ -106,7 +105,7 @@ export function CampaignCreationForm({ solutions, profiles, onCampaignSubmit, ed
       description: `${type} script has been copied.`,
     });
   };
-  
+
   const resetFormState = () => {
     if (formRef.current) {
         formRef.current.reset();
@@ -120,7 +119,7 @@ export function CampaignCreationForm({ solutions, profiles, onCampaignSubmit, ed
     state.data = null;
     state.error = null;
     if (isEditing) {
-        clearEditing();
+        clearEditingAction();
     }
   }
 
@@ -140,8 +139,8 @@ export function CampaignCreationForm({ solutions, profiles, onCampaignSubmit, ed
         });
         return;
     }
-    
-    onCampaignSubmit(campaignData);
+
+    onCampaignSubmitAction(campaignData);
 
     toast({
         title: isEditing ? "Campaign Updated!" : "Campaign Started!",
@@ -156,7 +155,7 @@ export function CampaignCreationForm({ solutions, profiles, onCampaignSubmit, ed
       <form action={formAction} ref={formRef} className="space-y-4">
         <input type="hidden" name="solutions" value={JSON.stringify(solutions)} />
         <input type="hidden" name="profiles" value={JSON.stringify(profiles)} />
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
                 <Label htmlFor="solution">Solution</Label>
@@ -248,7 +247,7 @@ export function CampaignCreationForm({ solutions, profiles, onCampaignSubmit, ed
           </div>
           <div className="flex justify-end gap-2 mt-4">
             {isEditing ? (
-              <Button variant="outline" onClick={clearEditing}>Cancel</Button>
+              <Button variant="outline" onClick={clearEditingAction}>Cancel</Button>
             ) : (
                 <Button variant="outline" onClick={resetFormState}>
                     Generate New
@@ -264,3 +263,5 @@ export function CampaignCreationForm({ solutions, profiles, onCampaignSubmit, ed
     </div>
   );
 }
+
+// No changes needed if DataProvider wraps the app.
