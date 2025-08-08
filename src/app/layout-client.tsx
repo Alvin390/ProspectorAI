@@ -23,10 +23,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
-interface LayoutClientProps {
-  children: React.ReactNode;
-}
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, signInWithGoogle, isLoading } = useData();
@@ -69,9 +67,11 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
 export function LayoutClient({ children }: LayoutClientProps) {
   const { isLoading, user } = useData();
-  
-  // Early return for loading state to prevent layout flash
-  if (isLoading) {
+  const isMobile = useIsMobile();
+
+  // This check prevents hydration errors by ensuring that the server
+  // and client render the same initial UI before the 'isMobile' state is determined on the client.
+  if (isMobile === undefined || isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -82,7 +82,7 @@ export function LayoutClient({ children }: LayoutClientProps) {
   if (!user) {
     return <AuthGuard>{children}</AuthGuard>;
   }
-  
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen">
@@ -106,4 +106,8 @@ export function LayoutClient({ children }: LayoutClientProps) {
       </div>
     </SidebarProvider>
   );
+}
+
+interface LayoutClientProps {
+    children: React.ReactNode;
 }
