@@ -31,7 +31,11 @@ import type { Solution } from './solutions/data';
 import type { LeadProfile } from './leads/data'; // Fix import here
 import type { CallLog } from './calling/page';
 import type { EmailLog } from './email/page';
-import { serverTimestamp, Timestamp } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { auth } from '@/lib/firebase';
+import { COLLECTIONS } from '@/lib/firebase/firestore';
+
 
 interface LeadProfileFormState {
   message: string;
@@ -349,4 +353,35 @@ export async function handleAIEmailFollowUp(
         console.error("Action: handleAIEmailFollowUp failed.", e);
         return { message: 'error', data: null, error: e.message || 'An unknown error occurred.' };
     }
+}
+
+async function addDocWithUser(collectionName: string, data: any) {
+  const user = auth.currentUser;
+  if (!user) {
+    console.error("Error: User not authenticated. Cannot add document.");
+    throw new Error("User not authenticated");
+  }
+  return await addDoc(collection(db, collectionName), {
+      ...data,
+      createdBy: user.uid,
+      createdAt: serverTimestamp(),
+  });
+}
+
+// Standalone server action to add enriched leads to Firestore
+export async function addLeads(newLeads: Partial<LeadProfile>[]) {
+  try {
+    console.log(`Action: addLeads. Attempting to add ${newLeads.length} leads.`);
+    for (const lead of newLeads) {
+      await addDocWithUser(COLLECTIONS.LEADS, {
+        ...lead,
+        status: 'new', // Default status for new leads
+      });
+    }
+    console.log(`Action: addLeads successful. Added ${newLeads.length} leads.`);
+  } catch (error) {
+    console.error("Action: addLeads failed.", error);
+    // We don't rethrow here to prevent the entire orchestrator from failing
+    // if one lead fails to save, but we log it as a critical error.
+  }
 }

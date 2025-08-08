@@ -15,6 +15,8 @@ import type { LeadProfile } from '@/app/leads/data'; // Ensure this is exported 
 import type { Campaign } from '@/app/campaigns/page';
 import type { CallLog } from '@/app/calling/page';
 import type { EmailLog } from '@/app/email/page';
+import { addLeads as addLeadsAction } from './actions';
+
 
 interface DataContextType {
   user: FirebaseUser | null;
@@ -101,16 +103,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user]);
 
-  // Add enriched leads to Firestore
+  // Wrapper for the server action
   const addLeads = useCallback(async (newLeads: Partial<LeadProfile>[]) => {
-    if (!user) return;
-    for (const lead of newLeads) {
-      await addDocWithUser(COLLECTIONS.LEADS, {
-        ...lead,
-        status: 'new', // Default status for new leads
-      });
+    if (!user) {
+        console.error("Cannot add leads: user is not authenticated.");
+        return;
     }
+    await addLeadsAction(newLeads);
   }, [user]);
+
 
   const value: DataContextType = {
     user,

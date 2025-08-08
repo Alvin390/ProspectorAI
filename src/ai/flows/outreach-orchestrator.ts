@@ -17,7 +17,7 @@ import {
 } from './outreach-orchestrator.schema';
 import { z } from 'zod';
 import { findLeadsTool } from './find-leads';
-import { addLeads } from '@/app/data-provider';
+import { addLeads } from '@/app/actions';
 import { generateCampaignContent } from './generate-campaign-content';
 
 export async function runOrchestrator(
