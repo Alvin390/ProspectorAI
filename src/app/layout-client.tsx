@@ -13,7 +13,13 @@ import {
 import { Logo } from '@/components/logo';
 import { MainNav } from '@/components/main-nav';
 import { UserNav } from '@/components/user-nav';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 
 interface LayoutClientProps {
@@ -34,6 +40,12 @@ export function LayoutClient({ children }: LayoutClientProps) {
       {/* Auth Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Authentication</DialogTitle>
+            <DialogDescription>
+              Sign in with your Google account to access the application.
+            </DialogDescription>
+          </DialogHeader>
           <div className="flex flex-col items-center gap-8 py-10">
             <div className="w-40">
               <Logo />
