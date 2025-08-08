@@ -20,15 +20,17 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Phone, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 import { useData } from '../data-provider';
+import type { Timestamp } from 'firebase/firestore';
 
 export interface CallLog {
   id: string;
+  leadId: string;
   campaignId: string;
-  campaignName: string;
-  leadIdentifier: string;
   status: 'Meeting Booked' | 'Not Interested' | 'Follow-up Required';
   summary: string;
-  timestamp: string;
+  scheduledTime: Timestamp;
+  createdAt: Timestamp;
+  createdBy: string;
 }
 
 export default function CallingPage() {
@@ -60,6 +62,8 @@ export default function CallingPage() {
     return <div>Loading call logs...</div>;
   }
 
+  const sortedLogs = [...allCallLogs].sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+
   return (
     <Card>
       <CardHeader>
@@ -69,11 +73,10 @@ export default function CallingPage() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-       {allCallLogs.length > 0 ? (
+       {sortedLogs.length > 0 ? (
            <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Campaign</TableHead>
                   <TableHead>Lead</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>AI Summary</TableHead>
@@ -81,10 +84,9 @@ export default function CallingPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {allCallLogs.sort((a,b) => parseInt(b.timestamp) - parseInt(a.timestamp)).map((log) => (
+                {sortedLogs.map((log) => (
                   <TableRow key={log.id}>
-                    <TableCell className="font-medium">{log.campaignName}</TableCell>
-                    <TableCell>{log.leadIdentifier}</TableCell>
+                    <TableCell>{log.leadId}</TableCell>
                     <TableCell>
                         <Badge variant={getStatusBadgeVariant(log.status)} className='gap-1 pl-2 pr-3'>
                             {getStatusIcon(log.status)}
@@ -92,7 +94,7 @@ export default function CallingPage() {
                         </Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground">{log.summary}</TableCell>
-                    <TableCell className="text-muted-foreground">{log.timestamp}</TableCell>
+                    <TableCell className="text-muted-foreground">{new Date(log.createdAt.toMillis()).toLocaleString()}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

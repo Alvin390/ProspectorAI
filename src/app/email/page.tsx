@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -25,10 +26,12 @@ import {
 } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Mail, CheckCircle, Clock, Send, AlertCircle as BounceIcon, AlertTriangle, Inbox, Eye } from 'lucide-react';
+import { Mail, CheckCircle, Clock, Send, AlertCircle as BounceIcon, Eye, Inbox, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useData } from '../data-provider';
+import type { Timestamp } from 'firebase/firestore';
+
 
 export interface EmailLog {
   id: string;
@@ -36,20 +39,18 @@ export interface EmailLog {
   campaignId: string;
   subject: string;
   content: string;
-  status: 'draft' | 'sent' | 'delivered' | 'opened' | 'replied' | 'bounced';
-  sentAt?: string;
-  openedAt?: string;
-  replyReceivedAt?: string;
-  threadId?: string;
+  status: 'sent' | 'opened' | 'replied' | 'bounced' | 'needs-attention';
+  createdAt: Timestamp;
+  createdBy: string;
+  sentAt: Timestamp;
   enrichment?: {
     jobTitle?: string;
     interests?: string[];
     recentNews?: string;
     linkedinUrl?: string;
   };
-  createdAt: string;
-  createdBy: string;
 }
+
 
 export default function EmailLogPage() {
   const { allEmailLogs, isLoading } = useData();
@@ -58,36 +59,36 @@ export default function EmailLogPage() {
 
   const getStatusIcon = (status: EmailLog['status']) => {
     switch (status) {
-      case 'Replied':
+      case 'replied':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'Bounced':
+      case 'bounced':
         return <BounceIcon className="h-4 w-4 text-red-500" />;
-      case 'Opened':
+      case 'opened':
         return <Clock className="h-4 w-4 text-blue-500" />;
-      case 'Sent':
+      case 'sent':
         return <Send className="h-4 w-4 text-gray-500" />;
-      case 'Needs Attention':
+      case 'needs-attention':
         return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
     }
   }
 
-  const getStatusBadgeVariant = (status: EmailLog['status']) => {
+  const getStatusBadgeVariant = (status: EmailLog['status']): 'default' | 'destructive' | 'secondary' | 'outline' => {
     switch (status) {
-      case 'Replied':
+      case 'replied':
         return 'default';
-      case 'Bounced':
+      case 'bounced':
         return 'destructive';
-      case 'Opened':
+      case 'opened':
         return 'secondary';
-      case 'Sent':
+      case 'sent':
         return 'outline';
-      case 'Needs Attention':
-        return 'default';
+      case 'needs-attention':
+        return 'default'; // Using 'default' but will be styled differently
     }
   }
 
   const getStatusBadgeClassName = (status: EmailLog['status']) => {
-    if (status === 'Needs Attention') {
+    if (status === 'needs-attention') {
         return 'bg-yellow-500 text-black hover:bg-yellow-600';
     }
     return '';
@@ -102,42 +103,40 @@ export default function EmailLogPage() {
     return <div>Loading email logs...</div>;
   }
 
+  const sortedLogs = [...allEmailLogs].sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+
+
   return (
     <>
     <Card>
       <CardHeader>
         <CardTitle>Email Outreach Log</CardTitle>
+        <CardDescription>A real-time log of all automated and manual emails sent.
+        </CardDescription>
       </CardHeader>
       <CardContent>
+      {sortedLogs.length > 0 ? (
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Status</TableHead>
               <TableHead>Subject</TableHead>
               <TableHead>Lead</TableHead>
-              <TableHead>Job Title</TableHead>
-              <TableHead>Interests</TableHead>
-              <TableHead>Recent News</TableHead>
-              <TableHead>LinkedIn</TableHead>
               <TableHead>Sent At</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {allEmailLogs.map((email) => (
+            {sortedLogs.map((email) => (
               <TableRow key={email.id}>
                 <TableCell>
-                  <Badge variant={getStatusBadgeVariant(email.status)} className={getStatusBadgeClassName(email.status)}>
-                    {getStatusIcon(email.status)} {email.status}
+                  <Badge variant={getStatusBadgeVariant(email.status)} className={`${getStatusBadgeClassName(email.status)} gap-1 pl-2 pr-3`}>
+                    {getStatusIcon(email.status)} {email.status.charAt(0).toUpperCase() + email.status.slice(1)}
                   </Badge>
                 </TableCell>
                 <TableCell>{email.subject}</TableCell>
                 <TableCell>{email.leadId}</TableCell>
-                <TableCell>{email.enrichment?.jobTitle || '-'}</TableCell>
-                <TableCell>{email.enrichment?.interests?.join(', ') || '-'}</TableCell>
-                <TableCell>{email.enrichment?.recentNews || '-'}</TableCell>
-                <TableCell>{email.enrichment?.linkedinUrl ? <Link href={email.enrichment.linkedinUrl} target="_blank">LinkedIn</Link> : '-'}</TableCell>
-                <TableCell>{email.sentAt || '-'}</TableCell>
+                <TableCell>{new Date(email.sentAt.toMillis()).toLocaleString()}</TableCell>
                 <TableCell>
                   <Button variant="outline" size="sm" onClick={() => handleViewEmail(email)}>
                     <Eye className="h-4 w-4" />
@@ -147,32 +146,42 @@ export default function EmailLogPage() {
             ))}
           </TableBody>
         </Table>
+        ) : (
+          <Alert>
+              <Inbox className="h-4 w-4" />
+              <AlertTitle>No Email Activity Yet</AlertTitle>
+              <AlertDescription>
+                  Once an active campaign begins sending emails, the activity will appear here in real-time. Start a new campaign on the Campaigns page to begin.
+              </AlertDescription>
+          </Alert>
+        )}
       </CardContent>
     </Card>
     <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-      <SheetContent>
+      <SheetContent className="w-[400px] sm:w-[540px]">
         <SheetHeader>
           <SheetTitle>Email Details</SheetTitle>
-          <SheetDescription>
-            {selectedEmail && (
-              <>
-                <div><strong>Subject:</strong> {selectedEmail.subject}</div>
-                <div><strong>Lead:</strong> {selectedEmail.leadId}</div>
-                <div><strong>Status:</strong> {selectedEmail.status}</div>
-                <div><strong>Job Title:</strong> {selectedEmail.enrichment?.jobTitle || '-'}</div>
-                <div><strong>Interests:</strong> {selectedEmail.enrichment?.interests?.join(', ') || '-'}</div>
-                <div><strong>Recent News:</strong> {selectedEmail.enrichment?.recentNews || '-'}</div>
-                <div><strong>LinkedIn:</strong> {selectedEmail.enrichment?.linkedinUrl ? <Link href={selectedEmail.enrichment.linkedinUrl} target="_blank">LinkedIn</Link> : '-'}</div>
-                <div><strong>Thread ID:</strong> {selectedEmail.threadId || '-'}</div>
-                <div><strong>Sent At:</strong> {selectedEmail.sentAt || '-'}</div>
-                <div><strong>Body:</strong></div>
-                <Alert>
-                  <AlertTitle>Email Content</AlertTitle>
-                  <AlertDescription>{selectedEmail.content}</AlertDescription>
-                </Alert>
-              </>
+          {selectedEmail && (
+              <SheetDescription asChild>
+                <div className="space-y-4 text-sm">
+                  <div className="pt-4"><strong>Subject:</strong> {selectedEmail.subject}</div>
+                  <div><strong>Lead:</strong> {selectedEmail.leadId}</div>
+                  <div><strong>Status:</strong> {selectedEmail.status}</div>
+                  <div><strong>Sent At:</strong> {new Date(selectedEmail.sentAt.toMillis()).toLocaleString()}</div>
+                  {selectedEmail.enrichment?.jobTitle && <div><strong>Job Title:</strong> {selectedEmail.enrichment.jobTitle}</div>}
+                  {selectedEmail.enrichment?.interests && <div><strong>Interests:</strong> {selectedEmail.enrichment.interests.join(', ')}</div>}
+                  {selectedEmail.enrichment?.recentNews && <div><strong>Recent News:</strong> {selectedEmail.enrichment.recentNews}</div>}
+                  {selectedEmail.enrichment?.linkedinUrl && <div><strong>LinkedIn:</strong> <Link href={selectedEmail.enrichment.linkedinUrl} target="_blank" className="text-primary underline">View Profile</Link></div>}
+                  
+                  <div className='pt-4'>
+                    <Alert>
+                        <AlertTitle className="mb-2">Email Content</AlertTitle>
+                        <AlertDescription className="whitespace-pre-wrap">{selectedEmail.content}</AlertDescription>
+                    </Alert>
+                  </div>
+                </div>
+              </SheetDescription>
             )}
-          </SheetDescription>
         </SheetHeader>
       </SheetContent>
     </Sheet>

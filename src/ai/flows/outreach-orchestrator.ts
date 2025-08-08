@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -17,6 +18,7 @@ import {
 import { z } from 'zod';
 import { findLeadsTool } from './find-leads';
 import { addLeads } from '@/app/data-provider';
+import { generateCampaignContent } from './generate-campaign-content';
 
 export async function runOrchestrator(
   input: OutreachOrchestratorInput
@@ -87,12 +89,10 @@ const outreachOrchestratorFlow = ai.defineFlow(
     // Persist enriched leads to Firestore
     await addLeads(leadsOutput.potentialLeads);
     // 2. Generate general scripts for campaign review (solution + lead profile only)
-    await import('./generate-campaign-content').then(mod =>
-      mod.generateCampaignContent({
+    await generateCampaignContent({
         solutionDescription: input.solutionDescription,
         leadProfile: input.leadProfile,
-      })
-    );
+    });
     // 3. Pass the found leads to the prompt to get the strategic plan
     const promptResult = await prompt({
         solutionDescription: input.solutionDescription,
