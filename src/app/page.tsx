@@ -61,8 +61,8 @@ export default function Dashboard() {
       
       const meetingsScheduledCount = allCallLogs.filter(log => log.status === 'Meeting Booked').length;
       
-      const callLeads = allCallLogs.map(l => l.leadIdentifier);
-      const emailLeads = allEmailLogs.map(l => l.leadIdentifier);
+      const callLeads = allCallLogs.map(l => l.leadId);
+      const emailLeads = allEmailLogs.map(l => l.leadId);
       const allContactedLeads = new Set([...callLeads, ...emailLeads]);
       const leadsContactedCount = allContactedLeads.size;
 

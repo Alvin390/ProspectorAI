@@ -21,29 +21,31 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Loader2 } from 'lucide-react';
 
 interface LayoutClientProps {
   children: React.ReactNode;
 }
 
-export function LayoutClient({ children }: LayoutClientProps) {
-  const { user, signInWithGoogle } = useData();
-  const [open, setOpen] = React.useState(true);
+function AuthGuard({ children }: { children: React.ReactNode }) {
+  const { user, signInWithGoogle, isLoading } = useData();
 
-  React.useEffect(() => {
-    if (user) setOpen(false);
-    else setOpen(true);
-  }, [user]);
+  if (isLoading) {
+    return (
+      <div className="flex h-full w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
-  return (
-    <SidebarProvider>
-      {/* Auth Dialog */}
-      <Dialog open={open} onOpenChange={setOpen}>
+  if (!user) {
+    return (
+      <Dialog open={true}>
         <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader className="sr-only">
-            <DialogTitle>Authentication</DialogTitle>
-            <DialogDescription>
-              Sign in with your Google account to access the application.
+          <DialogHeader>
+            <DialogTitle className="text-center">Authentication Required</DialogTitle>
+            <DialogDescription className="text-center">
+              Please sign in with your Google account to access the application.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col items-center gap-8 py-10">
@@ -54,7 +56,16 @@ export function LayoutClient({ children }: LayoutClientProps) {
           </div>
         </DialogContent>
       </Dialog>
+    );
+  }
 
+  return <>{children}</>;
+}
+
+
+export function LayoutClient({ children }: LayoutClientProps) {
+  return (
+    <SidebarProvider>
       <div className="flex min-h-screen">
         <Sidebar>
           <SidebarHeader className="border-b px-6 py-3">
@@ -70,7 +81,9 @@ export function LayoutClient({ children }: LayoutClientProps) {
           </SidebarInset>
           <SidebarTrigger />
         </Sidebar>
-        <main className="flex-1 overflow-auto">{children}</main>
+        <main className="flex-1 overflow-auto p-6">
+          <AuthGuard>{children}</AuthGuard>
+        </main>
       </div>
     </SidebarProvider>
   );
