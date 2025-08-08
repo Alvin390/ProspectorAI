@@ -3,8 +3,10 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { db, auth } from '@/lib/firebase';
 import { COLLECTIONS } from '@/lib/firebase/firestore';
-import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, User as FirebaseUser } from 'firebase/auth';
-import { collection, query, where, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import { signInWithPopup, GoogleAuthProvider, User as FirebaseUser } from 'firebase/auth';
+import { collection, query, where, addDoc, serverTimestamp, updateDoc, doc, deleteDoc } from 'firebase/firestore';
+
+import { useFirestoreCollectionData, useSigninCheck } from 'reactfire';
 
 // Fix LeadProfile import to match your actual export
 import type { Solution } from '@/app/solutions/data';
@@ -17,115 +19,89 @@ interface DataContextType {
   user: FirebaseUser | null;
   signInWithGoogle: () => Promise<void>;
   solutions: Solution[];
-  setSolutions: React.Dispatch<React.SetStateAction<Solution[]>>;
   profiles: LeadProfile[];
-  setProfiles: React.Dispatch<React.SetStateAction<LeadProfile[]>>;
   campaigns: Campaign[];
-  setCampaigns: React.Dispatch<React.SetStateAction<Campaign[]>>;
   allCallLogs: CallLog[];
-  setAllCallLogs: React.Dispatch<React.SetStateAction<CallLog[]>>;
   allEmailLogs: EmailLog[];
-  setAllEmailLogs: React.Dispatch<React.SetStateAction<EmailLog[]>>;
   isLoading: boolean;
   addCallLogs: (newLogs: Omit<CallLog, 'id' | 'createdAt' | 'createdBy'>[]) => Promise<void>;
   addEmailLogs: (newLogs: Omit<EmailLog, 'id' | 'createdAt' | 'createdBy'>[]) => Promise<void>;
-  addLeads: (newLeads: Omit<LeadProfile, 'id' | 'createdAt' | 'createdBy'>[]) => Promise<void>;
+  addLeads: (newLeads: Partial<LeadProfile>[]) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<FirebaseUser | null>(null);
-  const [solutions, setSolutions] = useState<Solution[]>([]);
-  const [profiles, setProfiles] = useState<LeadProfile[]>([]);
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [allCallLogs, setAllCallLogs] = useState<CallLog[]>([]);
-  const [allEmailLogs, setAllEmailLogs] = useState<EmailLog[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { status: authStatus, data: signInResult } = useSigninCheck();
+  const user = signInResult?.user || null;
 
-  // Google Auth-only sign-in
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser);
-    });
-    return () => unsubscribe();
-  }, []);
+  const solutionsRef = collection(db, COLLECTIONS.SOLUTIONS);
+  const profilesRef = collection(db, COLLECTIONS.LEADS);
+  const campaignsRef = collection(db, COLLECTIONS.CAMPAIGNS);
+  const callLogsRef = collection(db, COLLECTIONS.CALL_LOGS);
+  const emailLogsRef = collection(db, COLLECTIONS.EMAIL_LOGS);
+
+  const { status: solutionsStatus, data: solutions } = useFirestoreCollectionData(
+    query(solutionsRef, where('createdBy', '==', user?.uid || '-')),
+    { idField: 'id' }
+  );
+  const { status: profilesStatus, data: profiles } = useFirestoreCollectionData(
+    query(profilesRef, where('createdBy', '==', user?.uid || '-')),
+    { idField: 'id' }
+  );
+  const { status: campaignsStatus, data: campaigns } = useFirestoreCollectionData(
+    query(campaignsRef, where('createdBy', '==', user?.uid || '-')),
+    { idField: 'id' }
+  );
+  const { status: callLogsStatus, data: allCallLogs } = useFirestoreCollectionData(
+    query(callLogsRef, where('createdBy', '==', user?.uid || '-')),
+    { idField: 'id' }
+  );
+  const { status: emailLogsStatus, data: allEmailLogs } = useFirestoreCollectionData(
+    query(emailLogsRef, where('createdBy', '==', user?.uid || '-')),
+    { idField: 'id' }
+  );
+
+
+  const isLoading = [authStatus, solutionsStatus, profilesStatus, campaignsStatus, callLogsStatus, emailLogsStatus].includes('loading');
+
 
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
     await signInWithPopup(auth, provider);
   };
 
-  // Firestore listeners scoped to user
-  useEffect(() => {
-    if (!user) return;
-    setIsLoading(true);
-    // Solutions
-    const solutionsQuery = query(collection(db, COLLECTIONS.SOLUTIONS), where('createdBy', '==', user.uid));
-    const unsubSolutions = onSnapshot(solutionsQuery, (snapshot) => {
-      setSolutions(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Solution)));
-    });
-    // Profiles
-    const profilesQuery = query(collection(db, COLLECTIONS.LEADS), where('createdBy', '==', user.uid));
-    const unsubProfiles = onSnapshot(profilesQuery, (snapshot) => {
-      setProfiles(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as LeadProfile)));
-    });
-    // Campaigns
-    const campaignsQuery = query(collection(db, COLLECTIONS.CAMPAIGNS), where('createdBy', '==', user.uid));
-    const unsubCampaigns = onSnapshot(campaignsQuery, (snapshot) => {
-      setCampaigns(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Campaign)));
-    });
-    // Call Logs
-    const callLogsQuery = query(collection(db, COLLECTIONS.CALL_LOGS), where('createdBy', '==', user.uid));
-    const unsubCallLogs = onSnapshot(callLogsQuery, (snapshot) => {
-      setAllCallLogs(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as CallLog)));
-    });
-    // Email Logs
-    const emailLogsQuery = query(collection(db, COLLECTIONS.EMAIL_LOGS), where('createdBy', '==', user.uid));
-    const unsubEmailLogs = onSnapshot(emailLogsQuery, (snapshot) => {
-      setAllEmailLogs(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as EmailLog)));
-    });
-    setIsLoading(false);
-    return () => {
-      unsubSolutions();
-      unsubProfiles();
-      unsubCampaigns();
-      unsubCallLogs();
-      unsubEmailLogs();
-    };
-  }, [user]);
-
+  const addDocWithUser = async (collectionName: string, data: any) => {
+      if (!user) throw new Error("User not authenticated");
+      return await addDoc(collection(db, collectionName), {
+          ...data,
+          createdBy: user.uid,
+          createdAt: serverTimestamp(),
+      });
+  }
+  
   // Add logs to Firestore
   const addCallLogs = useCallback(async (newLogs: Omit<CallLog, 'id' | 'createdAt' | 'createdBy'>[]) => {
     if (!user) return;
     for (const log of newLogs) {
-      await addDoc(collection(db, COLLECTIONS.CALL_LOGS), {
-        ...log,
-        createdBy: user.uid,
-        createdAt: serverTimestamp(),
-      });
+      await addDocWithUser(COLLECTIONS.CALL_LOGS, log);
     }
   }, [user]);
 
   const addEmailLogs = useCallback(async (newLogs: Omit<EmailLog, 'id' | 'createdAt' | 'createdBy'>[]) => {
     if (!user) return;
     for (const log of newLogs) {
-      await addDoc(collection(db, COLLECTIONS.EMAIL_LOGS), {
-        ...log,
-        createdBy: user.uid,
-        createdAt: serverTimestamp(),
-      });
+      await addDocWithUser(COLLECTIONS.EMAIL_LOGS, log);
     }
   }, [user]);
 
   // Add enriched leads to Firestore
-  const addLeads = useCallback(async (newLeads: Omit<LeadProfile, 'id' | 'createdAt' | 'createdBy'>[]) => {
+  const addLeads = useCallback(async (newLeads: Partial<LeadProfile>[]) => {
     if (!user) return;
     for (const lead of newLeads) {
-      await addDoc(collection(db, COLLECTIONS.LEADS), {
+      await addDocWithUser(COLLECTIONS.LEADS, {
         ...lead,
-        createdBy: user.uid,
-        createdAt: serverTimestamp(),
+        status: 'new', // Default status for new leads
       });
     }
   }, [user]);
@@ -133,16 +109,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const value: DataContextType = {
     user,
     signInWithGoogle,
-    solutions,
-    setSolutions,
-    profiles,
-    setProfiles,
-    campaigns,
-    setCampaigns,
-    allCallLogs,
-    setAllCallLogs,
-    allEmailLogs,
-    setAllEmailLogs,
+    solutions: (solutions as Solution[]) || [],
+    profiles: (profiles as LeadProfile[]) || [],
+    campaigns: (campaigns as Campaign[]) || [],
+    allCallLogs: (allCallLogs as CallLog[]) || [],
+    allEmailLogs: (allEmailLogs as EmailLog[]) || [],
     isLoading,
     addCallLogs,
     addEmailLogs,
@@ -155,8 +126,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 export function useData() {
   const context = useContext(DataContext);
   if (context === undefined) {
-    // Add a more helpful error message for debugging
-    throw new Error('useData must be used within a DataProvider. Make sure your component tree is wrapped in <DataProvider>.');
+    throw new Error('useData must be used within a DataProvider.');
   }
   return context;
 }
