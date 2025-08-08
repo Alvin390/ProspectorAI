@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useActionState, useState, useEffect } from 'react';
@@ -38,12 +39,12 @@ function SubmitButton() {
 
 interface LeadProfilingFormProps {
   solutions: Solution[];
-  onProfileSaveAction: (profileData: Partial<LeadProfile>, data: GenerateLeadProfileOutput) => void; // Rename for TS71007
-  editingProfile?: LeadProfile | null; // Fix type here
-  onCancelAction: () => void; // Rename for TS71007
+  onProfileSave: (profileData: Partial<LeadProfile>, data: GenerateLeadProfileOutput) => void;
+  editingProfile?: LeadProfile | null;
+  onCancel: () => void;
 }
 
-export function LeadProfilingForm({ solutions, onProfileSaveAction, editingProfile, onCancelAction }: LeadProfilingFormProps) {
+export function LeadProfilingForm({ solutions, onProfileSave, editingProfile, onCancel }: LeadProfilingFormProps) {
   const [state, formAction] = useActionState(handleGenerateLeadProfile, initialState);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -87,7 +88,7 @@ export function LeadProfilingForm({ solutions, onProfileSaveAction, editingProfi
             name: name,
             description: description,
         };
-        onProfileSaveAction(profileData, generatedData);
+        onProfileSave(profileData, generatedData);
         // Reset form after saving
         setName('');
         setDescription('');
@@ -103,7 +104,7 @@ export function LeadProfilingForm({ solutions, onProfileSaveAction, editingProfi
       <form action={formAction} className="space-y-4">
          <div className="space-y-2">
             <Label htmlFor="solution">Base Profile on a Solution (Optional)</Label>
-            <p className="text-sm text-muted-foreground">Select a solution to pre-fill the description.</p>
+            <p className="text-sm text-muted-foreground">Select a solution to pre-fill the description. The AI will generate an ideal customer profile based on it.</p>
             <Select name="solution" onValueChange={handleSolutionChange}>
               <SelectTrigger id="solution">
                 <SelectValue placeholder="Select a solution..." />
@@ -172,7 +173,7 @@ export function LeadProfilingForm({ solutions, onProfileSaveAction, editingProfi
             </Card>
             </div>
             <div className="flex justify-end gap-2">
-                {editingProfile && <Button variant="outline" onClick={onCancelAction}>Cancel</Button>}
+                {editingProfile && <Button variant="outline" onClick={onCancel}>Cancel</Button>}
                 <Button onClick={handleSaveClick} disabled={!name}>
                     <Save className="mr-2 h-4 w-4" />
                     {editingProfile ? 'Update Profile' : 'Save New Profile'}
@@ -183,5 +184,3 @@ export function LeadProfilingForm({ solutions, onProfileSaveAction, editingProfi
     </div>
   );
 }
-
-// No changes needed if DataProvider wraps the app.

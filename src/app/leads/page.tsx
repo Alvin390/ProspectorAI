@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -29,7 +30,7 @@ import {
 import { LeadProfilingForm } from './lead-profiling-form';
 import type { GenerateLeadProfileOutput } from '@/ai/flows/generate-lead-profile.schema';
 import { useToast } from '@/hooks/use-toast';
-import { type Profile } from './data';
+import { type LeadProfile } from './data';
 import { useData } from '../data-provider';
 import { db } from '@/lib/firebase';
 import { collection, doc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
@@ -37,10 +38,10 @@ import { collection, doc, addDoc, updateDoc, deleteDoc } from 'firebase/firestor
 
 export default function LeadProfilingPage() {
   const { profiles, user, solutions, isLoading } = useData();
-  const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
+  const [editingProfile, setEditingProfile] = useState<LeadProfile | null>(null);
   const { toast } = useToast();
 
-  const handleProfileSave = async (profileData: Partial<Profile>, generatedData: GenerateLeadProfileOutput) => {
+  const handleProfileSave = async (profileData: Partial<LeadProfile>, generatedData: GenerateLeadProfileOutput) => {
     try {
       if (profileData.id && editingProfile) { // Update
         await updateDoc(doc(db, 'leads', editingProfile.id), {
@@ -76,7 +77,7 @@ export default function LeadProfilingPage() {
     }
   };
 
-  const handleEditProfile = (profile: Profile) => {
+  const handleEditProfile = (profile: LeadProfile) => {
       setEditingProfile(profile);
       // Scroll to top to make the form visible
       window.scrollTo({ top: 0, behavior: 'smooth' });

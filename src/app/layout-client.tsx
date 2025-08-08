@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -67,29 +68,42 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 }
 
 export function LayoutClient({ children }: LayoutClientProps) {
+  const { isLoading, user } = useData();
+  
+  // Early return for loading state to prevent layout flash
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <AuthGuard>{children}</AuthGuard>;
+  }
+  
   return (
     <SidebarProvider>
-      <AuthGuard>
-        <div className="flex min-h-screen">
-          <Sidebar className="z-50">
-            <SidebarHeader className="border-b px-6 py-3">
-              <div className="w-32">
-                <Logo />
-              </div>
-            </SidebarHeader>
-            <SidebarContent>
-              <MainNav />
-            </SidebarContent>
-            <SidebarInset className="absolute bottom-4 left-4 right-4">
-              <UserNav />
-            </SidebarInset>
-            <SidebarTrigger />
-          </Sidebar>
-          <main className="flex-1 overflow-auto p-6">
-            {children}
-          </main>
-        </div>
-      </AuthGuard>
+      <div className="flex min-h-screen">
+        <Sidebar className="z-50">
+          <SidebarHeader className="border-b px-6 py-3">
+            <div className="w-32">
+              <Logo />
+            </div>
+          </SidebarHeader>
+          <SidebarContent>
+            <MainNav />
+          </SidebarContent>
+          <SidebarInset className="absolute bottom-4 left-4 right-4">
+            <UserNav />
+          </SidebarInset>
+          <SidebarTrigger />
+        </Sidebar>
+        <main className="flex-1 overflow-auto p-6">
+          {children}
+        </main>
+      </div>
     </SidebarProvider>
   );
 }
