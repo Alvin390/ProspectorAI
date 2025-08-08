@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useActionState, useState, useEffect, useRef } from 'react';
@@ -46,12 +47,12 @@ function SubmitButton({ disabled }: { disabled?: boolean }) {
 interface CampaignCreationFormProps {
     solutions: Solution[];
     profiles: LeadProfile[]; // Fix type here
-    onCampaignSubmitAction: (campaignData: Omit<Campaign, 'id' | 'status'>) => void; // Rename for TS71007
+    onCampaignSubmit: (campaignData: Omit<Campaign, 'id' | 'status'>) => void;
     editingCampaign: Campaign | null;
-    clearEditingAction: () => void; // Rename for TS71007
+    clearEditing: () => void;
 }
 
-export function CampaignCreationForm({ solutions, profiles, onCampaignSubmitAction, editingCampaign, clearEditingAction }: CampaignCreationFormProps) {
+export function CampaignCreationForm({ solutions, profiles, onCampaignSubmit, editingCampaign, clearEditing }: CampaignCreationFormProps) {
   const [state, formAction] = useActionState(handleGenerateCampaignContent, initialState);
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
@@ -119,7 +120,7 @@ export function CampaignCreationForm({ solutions, profiles, onCampaignSubmitActi
     state.data = null;
     state.error = null;
     if (isEditing) {
-        clearEditingAction();
+        clearEditing();
     }
   }
 
@@ -140,7 +141,7 @@ export function CampaignCreationForm({ solutions, profiles, onCampaignSubmitActi
         return;
     }
 
-    onCampaignSubmitAction(campaignData);
+    onCampaignSubmit(campaignData);
 
     toast({
         title: isEditing ? "Campaign Updated!" : "Campaign Started!",
@@ -247,7 +248,7 @@ export function CampaignCreationForm({ solutions, profiles, onCampaignSubmitActi
           </div>
           <div className="flex justify-end gap-2 mt-4">
             {isEditing ? (
-              <Button variant="outline" onClick={clearEditingAction}>Cancel</Button>
+              <Button variant="outline" onClick={clearEditing}>Cancel</Button>
             ) : (
                 <Button variant="outline" onClick={resetFormState}>
                     Generate New
