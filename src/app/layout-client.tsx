@@ -98,11 +98,17 @@ export function LayoutClient({ children }: LayoutClientProps) {
           <SidebarInset className="absolute bottom-4 left-4 right-4">
             <UserNav />
           </SidebarInset>
-          <SidebarTrigger />
         </Sidebar>
-        <main className="flex-1 overflow-auto p-6">
-          {children}
-        </main>
+         <div className='flex flex-col w-full'>
+            <header className='flex h-14 items-center gap-4 border-b bg-background px-6'>
+                 <SidebarTrigger className='md:hidden' />
+                 <div className='flex-1'></div>
+                 {/*  Add any header content here if needed */}
+            </header>
+            <main className="flex-1 overflow-auto p-6">
+              {children}
+            </main>
+        </div>
       </div>
     </SidebarProvider>
   );

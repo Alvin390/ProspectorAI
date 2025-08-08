@@ -1,9 +1,10 @@
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { db, auth } from '@/lib/firebase';
 import { COLLECTIONS } from '@/lib/firebase/firestore';
-import { signInWithPopup, GoogleAuthProvider, User as FirebaseUser } from 'firebase/auth';
+import { signInWithPopup, GoogleAuthProvider, User as FirebaseUser, signOut as firebaseSignOut } from 'firebase/auth';
 import { collection, query, where, addDoc, serverTimestamp, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 
 import { useFirestoreCollectionData, useSigninCheck } from 'reactfire';
@@ -18,6 +19,7 @@ import type { EmailLog } from '@/app/email/page';
 interface DataContextType {
   user: FirebaseUser | null;
   signInWithGoogle: () => Promise<void>;
+  signOut: () => Promise<void>;
   solutions: Solution[];
   profiles: LeadProfile[];
   campaigns: Campaign[];
@@ -70,6 +72,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const provider = new GoogleAuthProvider();
     await signInWithPopup(auth, provider);
   };
+  
+  const signOut = async () => {
+      await firebaseSignOut(auth);
+  }
 
   const addDocWithUser = async (collectionName: string, data: any) => {
       if (!user) throw new Error("User not authenticated");
@@ -109,6 +115,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const value: DataContextType = {
     user,
     signInWithGoogle,
+    signOut,
     solutions: (solutions as Solution[]) || [],
     profiles: (profiles as LeadProfile[]) || [],
     campaigns: (campaigns as Campaign[]) || [],
